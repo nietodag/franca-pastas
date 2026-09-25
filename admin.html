@@ -525,31 +525,134 @@
   });
 
   /* ---------- stats ---------- */
+  var MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  var st = {mode:"month", month:null, from:null, to:null};
+  function ymd(d){ return d.toISOString().slice(0,10); }
+  function arToday(){ return ymd(new Date(Date.now() - 3*3600*1000)); }
+  function addDays(str, n){ var d = new Date(str + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return ymd(d); }
+  function monthBounds(ym){ var y = +ym.slice(0,4), m = +ym.slice(5,7); return {from: ym + "-01", to: ymd(new Date(Date.UTC(y, m, 0)))}; }
+  function addMonths(ym, n){ var d = new Date(Date.UTC(+ym.slice(0,4), +ym.slice(5,7) - 1 + n, 1)); return ymd(d).slice(0,7); }
+  function rangeOf(){
+    var t = arToday();
+    if (st.mode === "today") return {from:t, to:t};
+    if (st.mode === "7") return {from:addDays(t,-6), to:t};
+    if (st.mode === "30") return {from:addDays(t,-29), to:t};
+    if (st.mode === "custom") return {from:st.from || t, to:st.to || t};
+    return monthBounds(st.month);
+  }
+  function dayLabel(d){ return d.slice(8) + "/" + d.slice(5,7); }
+  function fetchAll(path){
+    var out = [], page = 1000;
+    function next(off){
+      return api("/rest/v1/" + path, {headers:{"Range-Unit":"items", Range: off + "-" + (off + page - 1)}}).then(function(rows){
+        out = out.concat(rows || []);
+        return rows && rows.length === page ? next(off + page) : out;
+      });
+    }
+    return next(0);
+  }
+  function fetchOrders(from, to){
+    var a = encodeURIComponent(from + "T00:00:00-03:00"), b = encodeURIComponent(addDays(to, 1) + "T00:00:00-03:00");
+    return fetchAll("orders?select=id,created_at,status,total,order_items(name,qty,unit_price)&created_at=gte." + a + "&created_at=lt." + b + "&order=created_at.asc");
+  }
+  function localDay(iso){ return ymd(new Date(new Date(iso).getTime() - 3*3600*1000)); }
+  function summarize(rows){
+    var live = rows.filter(function(o){ return o.status !== "cancelado"; });
+    var sales = live.reduce(function(a, o){ return a + o.total; }, 0);
+    return {orders: live.length, sales: sales, avg: live.length ? Math.round(sales / live.length) : 0,
+      units: live.reduce(function(a, o){ return a + o.order_items.reduce(function(x, i){ return x + i.qty; }, 0); }, 0),
+      confirmed: live.filter(function(o){ return o.status === "confirmado"; }).length,
+      pending: live.filter(function(o){ return o.status === "nuevo"; }).length,
+      cancelled: rows.length - live.length, live: live};
+  }
+
+  var lastRows = [], lastRange = null;
+  function statsControls(){
+    var r = rangeOf();
+    var h = '<div class="card" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">' +
+      '<select id="st-mode" style="width:auto">' + [["month","Mes calendario"],["today","Hoy"],["7","Últimos 7 días"],["30","Últimos 30 días"],["custom","Rango personalizado"]].map(function(o){
+        return '<option value="' + o[0] + '"' + (st.mode === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select>';
+    if (st.mode === "month"){
+      h += '<button class="btn small ghost" id="st-prev">‹</button><b style="min-width:150px;text-align:center;text-transform:capitalize">' + MESES[+st.month.slice(5,7) - 1] + ' ' + st.month.slice(0,4) + '</b>' +
+        '<button class="btn small ghost" id="st-next"' + (st.month >= arToday().slice(0,7) ? " disabled" : "") + '>›</button>';
+    } else if (st.mode === "custom"){
+      h += 'Del <input type="date" id="st-from" value="' + esc(st.from || r.from) + '" style="width:auto"> al <input type="date" id="st-to" value="' + esc(st.to || r.to) + '" style="width:auto">';
+    }
+    h += '<span style="color:var(--ink-soft);font-size:.85rem;margin-left:auto">' + dayLabel(r.from) + '/' + r.from.slice(0,4) + ' → ' + dayLabel(r.to) + '/' + r.to.slice(0,4) + '</span>' +
+      '<button class="btn small" id="st-csv">Descargar CSV</button></div><div id="stats-out"><p>Cargando…</p></div>';
+    return h;
+  }
   function loadStats(){
-    $("tab-stats").innerHTML = '<p>Cargando…</p>';
-    Promise.all([rest("stats_daily?select=*&limit=60"), rest("stats_products?select=*&limit=15"), rest("orders?select=status")]).then(function(r){
-      var daily = r[0], prods = r[1], all = r[2];
-      var ar = new Date(Date.now() - 3*3600*1000), today = ar.toISOString().slice(0,10);
-      function since(days){ var d = new Date(ar.getTime() - days*86400000).toISOString().slice(0,10); return daily.filter(function(x){ return x.dia >= d; }); }
-      function sum(a, k){ return a.reduce(function(s, x){ return s + Number(x[k]); }, 0); }
-      var t = daily.filter(function(x){ return x.dia === today; }), w = since(6), m = since(29);
-      var pend = all.filter(function(o){ return o.status === "nuevo"; }).length;
-      var html = '<div class="kpis">' +
-        '<div class="kpi"><span>Hoy</span><b>' + money(sum(t,"ventas")) + '</b>' + sum(t,"pedidos") + ' pedidos</div>' +
-        '<div class="kpi"><span>Últimos 7 días</span><b>' + money(sum(w,"ventas")) + '</b>' + sum(w,"pedidos") + ' pedidos</div>' +
-        '<div class="kpi"><span>Últimos 30 días</span><b>' + money(sum(m,"ventas")) + '</b>' + sum(m,"pedidos") + ' pedidos</div>' +
-        '<div class="kpi"><span>Ticket promedio</span><b>' + money(sum(m,"pedidos") ? Math.round(sum(m,"ventas") / sum(m,"pedidos")) : 0) + '</b>' + pend + ' pedidos por confirmar</div></div>';
-      var last = since(13).slice().reverse(), mx = Math.max.apply(null, last.map(function(x){ return Number(x.ventas); }).concat([1]));
-      html += '<div class="card"><h3>Ventas por día (14 días)</h3>' + (last.length ? last.map(function(x){
-        return '<div class="bar"><span class="l">' + x.dia.slice(8) + "/" + x.dia.slice(5,7) + '</span><span class="t"><i style="width:' + Math.round(Number(x.ventas) / mx * 100) + '%"></i></span><span class="v">' + money(x.ventas) + '</span></div>';
-      }).join("") : '<p style="color:var(--ink-soft)">Todavía no hay ventas.</p>') + '</div>';
-      var pm = Math.max.apply(null, prods.map(function(x){ return Number(x.unidades); }).concat([1]));
-      html += '<div class="card"><h3>Lo más pedido</h3>' + (prods.length ? prods.map(function(x){
-        return '<div class="bar"><span class="l wide">' + esc(x.name) + '</span><span class="t"><i style="width:' + Math.round(Number(x.unidades) / pm * 100) + '%;background:var(--gold)"></i></span><span class="v">' + x.unidades + ' u.</span></div>';
-      }).join("") : '<p style="color:var(--ink-soft)">Todavía no hay pedidos.</p>') + '</div>';
-      html += '<p style="color:var(--ink-soft);font-size:.8rem">Las estadísticas cuentan los pedidos nuevos y confirmados; los cancelados no suman.</p>';
-      $("tab-stats").innerHTML = html;
-    }).catch(function(e){ $("tab-stats").innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
+    if (!st.month) st.month = arToday().slice(0,7);
+    $("tab-stats").innerHTML = statsControls();
+    $("st-mode").addEventListener("change", function(){
+      st.mode = this.value;
+      if (st.mode === "custom" && !st.from){ var r = rangeOf(); st.from = r.from; st.to = r.to; }
+      loadStats();
+    });
+    if ($("st-prev")) $("st-prev").addEventListener("click", function(){ st.month = addMonths(st.month, -1); loadStats(); });
+    if ($("st-next")) $("st-next").addEventListener("click", function(){ st.month = addMonths(st.month, 1); loadStats(); });
+    ["st-from","st-to"].forEach(function(id){ if ($(id)) $(id).addEventListener("change", function(){
+      st.from = $("st-from").value; st.to = $("st-to").value;
+      if (st.from && st.to && st.from <= st.to) loadStats();
+    }); });
+    $("st-csv").addEventListener("click", downloadCsv);
+
+    var r = rangeOf(), prev = null;
+    if (st.mode === "month") prev = monthBounds(addMonths(st.month, -1));
+    Promise.all([fetchOrders(r.from, r.to), prev ? fetchOrders(prev.from, prev.to) : Promise.resolve(null)]).then(function(res){
+      lastRows = res[0]; lastRange = r;
+      renderStats(res[0], r, res[1]);
+    }).catch(function(e){ $("stats-out").innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
+  }
+  function renderStats(rows, r, prevRows){
+    var S = summarize(rows), html = "";
+    var delta = "";
+    if (prevRows){
+      var P = summarize(prevRows);
+      delta = P.sales ? ((S.sales >= P.sales ? "+" : "") + Math.round((S.sales - P.sales) / P.sales * 100) + "% vs mes anterior") : "mes anterior sin ventas";
+    }
+    html += '<div class="kpis">' +
+      '<div class="kpi"><span>Ventas</span><b>' + money(S.sales) + '</b>' + (delta || S.units + " unidades") + '</div>' +
+      '<div class="kpi"><span>Pedidos</span><b>' + S.orders + '</b>' + S.confirmed + ' confirmados · ' + S.pending + ' por confirmar</div>' +
+      '<div class="kpi"><span>Ticket promedio</span><b>' + money(S.avg) + '</b>' + S.units + ' unidades vendidas</div>' +
+      '<div class="kpi"><span>Cancelados</span><b>' + S.cancelled + '</b>no suman a las ventas</div></div>';
+
+    var days = {}, keys = [], d = r.from;
+    while (d <= r.to && keys.length < 400){ keys.push(d); days[d] = {sales:0, orders:0}; d = addDays(d, 1); }
+    S.live.forEach(function(o){ var k = localDay(o.created_at); if (days[k]){ days[k].sales += o.total; days[k].orders++; } });
+    var grouped = keys.length > 62, series = [];
+    if (grouped){
+      var byM = {}; keys.forEach(function(k){ var m = k.slice(0,7); byM[m] = byM[m] || {sales:0, orders:0}; byM[m].sales += days[k].sales; byM[m].orders += days[k].orders; });
+      Object.keys(byM).forEach(function(m){ series.push({l: MESES[+m.slice(5,7) - 1].slice(0,3) + " " + m.slice(2,4), v: byM[m].sales, n: byM[m].orders}); });
+    } else keys.forEach(function(k){ series.push({l: dayLabel(k), v: days[k].sales, n: days[k].orders}); });
+    var mx = Math.max.apply(null, series.map(function(x){ return x.v; }).concat([1]));
+    html += '<div class="card"><h3>Ventas por ' + (grouped ? "mes" : "día") + '</h3>' + (S.orders ? series.map(function(x){
+      return '<div class="bar"><span class="l">' + x.l + '</span><span class="t"><i style="width:' + Math.round(x.v / mx * 100) + '%"></i></span><span class="v">' + money(x.v) + (x.n ? ' <small style="color:var(--ink-soft)">(' + x.n + ')</small>' : "") + '</span></div>';
+    }).join("") : '<p style="color:var(--ink-soft)">No hay ventas en este período.</p>') + '</div>';
+
+    var pm = {};
+    S.live.forEach(function(o){ o.order_items.forEach(function(i){ var x = pm[i.name] = pm[i.name] || {u:0, v:0}; x.u += i.qty; x.v += i.qty * i.unit_price; }); });
+    var plist = Object.keys(pm).map(function(k){ return {n:k, u:pm[k].u, v:pm[k].v}; }).sort(function(a, b){ return b.u - a.u; });
+    var pmx = Math.max.apply(null, plist.map(function(x){ return x.u; }).concat([1]));
+    html += '<div class="card"><h3>Lo más pedido</h3>' + (plist.length ? plist.slice(0, 20).map(function(x){
+      return '<div class="bar"><span class="l wide">' + esc(x.n) + '</span><span class="t"><i style="width:' + Math.round(x.u / pmx * 100) + '%;background:var(--gold)"></i></span><span class="v">' + x.u + ' u. · ' + money(x.v) + '</span></div>';
+    }).join("") : '<p style="color:var(--ink-soft)">No hay pedidos en este período.</p>') + '</div>';
+    html += '<p style="color:var(--ink-soft);font-size:.8rem">Las ventas cuentan pedidos nuevos y confirmados; los cancelados no suman. Los días van de 00:00 a 23:59, hora de Argentina.</p>';
+    $("stats-out").innerHTML = html;
+  }
+  function downloadCsv(){
+    if (!lastRange) return;
+    function q(v){ return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }
+    var lines = ["Fecha,Hora,Pedido,Estado,Total,Detalle"];
+    lastRows.forEach(function(o){
+      var dt = new Date(new Date(o.created_at).getTime() - 3*3600*1000).toISOString();
+      lines.push([q(dt.slice(0,10)), q(dt.slice(11,16)), o.id, q(o.status), o.total, q(o.order_items.map(function(i){ return i.name + " x" + i.qty; }).join(" | "))].join(","));
+    });
+    var blob = new Blob(["﻿" + lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "pedidos_" + (st.mode === "month" ? st.month : lastRange.from + "_a_" + lastRange.to) + ".csv";
+    document.body.appendChild(a); a.click(); a.remove();
   }
 
   /* ---------- boot ---------- */
