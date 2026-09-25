@@ -421,11 +421,11 @@
     overflow-y:auto;
     box-shadow:0 -16px 40px -12px rgba(23,51,63,.4);
   }
+  .item-modal.open{ transform:translate(-50%, 0); visibility:visible; transition:transform .25s ease, visibility 0s linear 0s; }
   @media (min-width:520px){
     .item-modal{ top:38%; bottom:auto; border-radius:24px; max-height:80vh; transform:translate(-50%, -34%) scale(.96); opacity:0; }
-    .item-modal.open{ transform:translate(-50%, -38%) scale(1); opacity:1; }
+    .item-modal.open{ transform:translate(-50%, -38%) scale(1); opacity:1; visibility:visible; }
   }
-  .item-modal.open{ transform:translate(-50%, 0); visibility:visible; transition:transform .25s ease, visibility 0s linear 0s; }
   .item-modal-close{
     position:absolute; top:12px; right:12px; z-index:2;
     width:34px; height:34px; border-radius:50%; border:none;
