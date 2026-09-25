@@ -464,7 +464,8 @@
     var f = fileInput.files[0]; if (!f || !photoCard) return;
     var card = photoCard, btn = card.querySelector("[data-upload]"), old = btn.textContent; btn.textContent = "Subiendo…"; btn.disabled = true;
     resize(f, 1200).then(function(blob){
-      var path = "p" + card.dataset.id + "-" + Date.now() + ".jpg";
+      var nm = slug((card.querySelector(".pname") || {}).value || "") || ("plato-" + card.dataset.id);
+      var path = nm + "-" + Date.now().toString(36) + ".jpg";
       return fetch(SUPA + "/storage/v1/object/product-photos/" + path, {method:"POST", headers:{apikey:KEY, Authorization:"Bearer " + session.access, "Content-Type":"image/jpeg"}, body: blob})
         .then(function(r){ if (!r.ok) return r.text().then(function(x){ throw new Error(x); }); return SUPA + "/storage/v1/object/public/product-photos/" + path; });
     }).then(function(url){

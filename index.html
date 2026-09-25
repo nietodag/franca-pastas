@@ -1,4 +1,4 @@
-<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>Franca Pastas · Pastas hechas a mano</title><meta name="description" content="Pastas frescas y rellenas hechas a mano en General Pico, La Pampa. Mirá el menú y pedí online por WhatsApp."><meta name="theme-color" content="#17333F"><meta property="og:type" content="website"><meta property="og:site_name" content="Franca Pastas"><meta property="og:locale" content="es_AR"><meta property="og:title" content="Franca Pastas · Pastas hechas a mano"><meta property="og:description" content="Pastas frescas y rellenas hechas a mano en General Pico, La Pampa. Mirá el menú y pedí online por WhatsApp."><meta property="og:url" content="https://francapastas.com/"><meta property="og:image" content="https://francapastas.com/images/og.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Franca Pastas · Pastas hechas a mano"><meta name="twitter:description" content="Pastas frescas y rellenas hechas a mano en General Pico, La Pampa. Mirá el menú y pedí online por WhatsApp."><meta name="twitter:image" content="https://francapastas.com/images/og.jpg"><link rel="icon" href="images/logo.png"></head><body>
+<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>Franca Pastas · Pastas hechas a mano</title><meta name="description" content="Pastas frescas y rellenas hechas a mano en General Pico, La Pampa. Mirá el menú y pedí online por WhatsApp."><meta name="theme-color" content="#17333F"><meta property="og:type" content="website"><meta property="og:site_name" content="Franca Pastas"><meta property="og:locale" content="es_AR"><meta property="og:title" content="Franca Pastas · Pastas hechas a mano"><meta property="og:description" content="Pastas frescas y rellenas hechas a mano en General Pico, La Pampa. Mirá el menú y pedí online por WhatsApp."><meta property="og:url" content="https://francapastas.com/"><meta property="og:image" content="https://francapastas.com/images/og.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Franca Pastas · Pastas hechas a mano"><meta name="twitter:description" content="Pastas frescas y rellenas hechas a mano en General Pico, La Pampa. Mirá el menú y pedí online por WhatsApp."><meta name="twitter:image" content="https://francapastas.com/images/og.jpg"><link rel="icon" href="images/logo.png"><link rel="canonical" href="https://francapastas.com/"><script type="application/ld+json">{"@context":"https://schema.org","@type":"FoodEstablishment","name":"Franca Pastas","description":"Pastas frescas y rellenas hechas a mano en General Pico, La Pampa. Delivery y take away.","url":"https://francapastas.com/","image":"https://francapastas.com/images/og.jpg","logo":"https://francapastas.com/images/logo.png","telephone":"+5492302660504","servesCuisine":["Pastas frescas","Pastas rellenas","Empanadas"],"priceRange":"$$","address":{"@type":"PostalAddress","addressLocality":"General Pico","addressRegion":"La Pampa","addressCountry":"AR"},"sameAs":["https://instagram.com/francapastas"]}</script></head><body>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
@@ -297,6 +297,7 @@
   /* ============ SECTIONS ============ */
   main{ max-width:1080px; margin:0 auto; padding: 8px 20px 40px; }
   .category{ padding-top:44px; scroll-margin-top:136px; }
+  #menu{ scroll-margin-top:64px; }
   .cat-head{ display:flex; align-items:baseline; gap:14px; margin-bottom:24px; flex-wrap:wrap; }
   .cat-eyebrow{
     font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
@@ -684,11 +685,11 @@
 <div class="topbar-overlay" id="topbar-overlay"></div>
 
 <div class="hero">
-  <div class="hero-bg" id="hero-bg"><img src="images/hero-1.jpg" alt="Pastas Franca" class="is-active" style="object-position:center 35%;"></div>
+  <div class="hero-bg" id="hero-bg"><img src="images/hero-1.jpg" alt="Pastas frescas hechas a mano · Franca, General Pico" class="is-active" style="object-position:center 35%;"></div>
   <div class="hero-scrim"></div>
   <div class="hero-inner">
     <div class="hero-copy">
-      <img class="hero-logo-big" id="hero-logo-big" alt="Franca" src="images/logo.png">
+      <img class="hero-logo-big" id="hero-logo-big" alt="Franca Pastas" src="images/logo.png">
       <div class="hero-ctas">
         <a class="btn btn-primary" href="#tortellonis">Ver el menú</a>
         <a class="btn btn-ghost" id="hero-wa" href="#" target="_blank" rel="noopener">
@@ -724,7 +725,7 @@
   </article>
 </div>
 
-<div class="catnav-wrap">
+<div class="catnav-wrap" id="menu">
   <div class="search-bar">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
     <input type="text" id="menu-search" placeholder="Buscar por relleno o especialidad..." aria-label="Buscar en el menú">
@@ -1249,7 +1250,7 @@
   HERO_PHOTOS.slice(1).forEach(function(p){
     var img = document.createElement('img');
     img.src = p.src;
-    img.alt = 'Pastas Franca';
+    img.alt = 'Pastas frescas hechas a mano · Franca, General Pico';
     img.style.objectPosition = p.position;
     heroBgEl.appendChild(img);
   });
@@ -1282,6 +1283,25 @@
   topbarMenuBtn.addEventListener('click', toggleDropdown);
   topbarOverlay.addEventListener('click', closeDropdown);
 
+  /* ---------- SEO helpers ---------- */
+  function escAttr(t){ return String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function altText(cat, item){
+    var d = (item.desc || '').replace(/[.\s]+$/, '');
+    return cat.title + ': ' + item.name + (d ? '. ' + d : '') + '. Hecho a mano en General Pico, La Pampa · Franca Pastas';
+  }
+  function absUrl(u){ try { return new URL(u, location.href).href; } catch(e){ return u; } }
+  function updateProductSchema(){
+    var list = [];
+    CATEGORIES.forEach(function(c){ c.items.forEach(function(i){
+      list.push({'@type':'Product', name:i.name, category:c.title, description:altText(c, i), brand:{'@type':'Brand', name:'Franca Pastas'},
+        image: i.photo ? absUrl(i.photo) : undefined,
+        offers:{'@type':'Offer', priceCurrency:'ARS', price:String(i.price), availability:'https://schema.org/InStock', url:location.origin + '/#' + c.id}});
+    }); });
+    var el = document.getElementById('ld-products');
+    if (!el){ el = document.createElement('script'); el.type = 'application/ld+json'; el.id = 'ld-products'; document.head.appendChild(el); }
+    el.textContent = JSON.stringify({'@context':'https://schema.org', '@type':'ItemList', name:'Menú de Franca Pastas', itemListElement:list.map(function(p, n){ return {'@type':'ListItem', position:n + 1, item:p}; })});
+  }
+
   /* ---------- render ---------- */
   var nav = document.getElementById('catnav');
   var root = document.getElementById('menu-root');
@@ -1299,11 +1319,6 @@
     a.textContent = cat.title;
     nav.appendChild(a);
 
-    var dLink = document.createElement('a');
-    dLink.href = '#'+cat.id;
-    dLink.textContent = cat.title;
-    dLink.addEventListener('click', closeDropdown);
-    dropdown.appendChild(dLink);
 
     var section = document.createElement('section');
     section.className = 'category';
@@ -1324,7 +1339,7 @@
       var stockBadgeHtml = item.outOfStock ? '<span class="badge out-of-stock">Sin stock</span>' : '';
       var unitBadgeHtml = '<span class="unit-badge">'+cat.note+'</span>';
       var photoHtml = item.photo
-        ? '<img src="'+item.photo+'" alt="'+item.name+'" loading="lazy" style="object-position:'+(item.photoPos || '50% 50%')+'">'
+        ? '<img src="'+item.photo+'" alt="'+escAttr(altText(cat, item))+'" loading="lazy" style="object-position:'+(item.photoPos || '50% 50%')+'">'
         : SHAPES[cat.shape](item.color);
       var lowHtml = (!item.outOfStock && item.stock != null && item.stock <= (item.lowAt == null ? 3 : item.lowAt))
         ? '<span class="badge low-stock">' + (item.stock === 1 ? '¡Última!' : '¡Últimas ' + item.stock + '!') + '</span>' : '';
@@ -1361,11 +1376,6 @@
   exA.textContent = 'Salsas';
   nav.appendChild(exA);
 
-  var exDLink = document.createElement('a');
-  exDLink.href = '#salsas';
-  exDLink.textContent = 'Salsas';
-  exDLink.addEventListener('click', closeDropdown);
-  dropdown.appendChild(exDLink);
 
   var exSection = document.createElement('section');
   exSection.className = 'category section-label-only';
@@ -1408,11 +1418,12 @@
   tipsA.textContent = 'Tips para cocinar';
   nav.appendChild(tipsA);
 
-  var tipsDLink = document.createElement('a');
-  tipsDLink.href = 'tips.html';
-  tipsDLink.textContent = 'Tips para cocinar';
-  tipsDLink.addEventListener('click', closeDropdown);
-  dropdown.appendChild(tipsDLink);
+  [['Pastas', '#menu'], ['Tips', 'tips.html']].forEach(function(l){
+    var a = document.createElement('a');
+    a.href = l[1]; a.textContent = l[0];
+    a.addEventListener('click', closeDropdown);
+    dropdown.appendChild(a);
+  });
   var featureItem = null, featureCat = null;
   CATEGORIES.forEach(function(c){ c.items.forEach(function(i){ if (i.featured && !featureItem){ featureItem = i; featureCat = c; } }); });
   if (featureItem){
@@ -1422,7 +1433,7 @@
     ft.appendChild(fsc);
     document.getElementById('feature-desc').textContent = featureItem.desc;
     document.getElementById('feature-l1').textContent = featureCat.note;
-    document.getElementById('feature-photo').innerHTML = featureItem.photo ? '<img src="' + featureItem.photo + '" alt="' + featureItem.name + '" loading="lazy" style="object-position:' + (featureItem.photoPos || '50% 50%') + '">' : SHAPES[featureCat.shape](featureItem.color);
+    document.getElementById('feature-photo').innerHTML = featureItem.photo ? '<img src="' + featureItem.photo + '" alt="' + escAttr(altText(featureCat, featureItem)) + '" loading="lazy" style="object-position:' + (featureItem.photoPos || '50% 50%') + '">' : SHAPES[featureCat.shape](featureItem.color);
     document.getElementById('feature-price').textContent = featureItem.price.toLocaleString('es-AR');
     featureEntry.catId = featureCat.id; featureEntry.catTitle = featureCat.title; featureEntry.itemName = featureItem.name; featureEntry.price = featureItem.price;
     ITEM_REGISTRY.push(featureEntry);
@@ -1431,6 +1442,7 @@
     document.querySelector('.feature').style.display = 'none';
   }
   applySearch();
+  updateProductSchema();
   } /* end renderMenu */
 
   root.innerHTML = '<p class="menu-loading">Cargando el menú…</p>';
