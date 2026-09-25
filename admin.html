@@ -20,7 +20,7 @@
   .top{background:var(--navy);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:10;}
   .top h1{margin:0;font-size:1.05rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase;}
   .top a,.top button{color:#fff;background:transparent;border:1.5px solid rgba(255,255,255,.5);border-radius:999px;padding:6px 14px;font-weight:700;font-size:.8rem;cursor:pointer;text-decoration:none;}
-  .wrap{max-width:1240px;margin:0 auto;padding:20px 16px 80px;}
+  .wrap{max-width:1240px;margin:0 auto;padding:20px 16px 110px;}
   .login{max-width:360px;margin:12vh auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:28px;}
   .login h2{margin:0 0 4px;font-weight:900;color:var(--blue);}
   .login p{margin:0 0 18px;color:var(--ink-soft);font-size:.9rem;}
@@ -67,6 +67,24 @@
   .cat-nav a{background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:700;font-size:.85rem;color:var(--ink);text-decoration:none;}
   .cat-nav a:hover{border-color:var(--blue);color:var(--blue);}
   .cat-nav input{max-width:220px;margin-left:auto;padding:8px 14px;border-radius:999px;}
+  .savebar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--navy);color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:flex-end;gap:12px;box-shadow:0 -8px 24px -10px rgba(0,0,0,.35);}
+  .savebar #save-count{margin-right:auto;font-weight:700;}
+  .savebar .btn{padding:12px 26px;font-size:1rem;} .savebar .btn.ghost{color:#fff;border-color:rgba(255,255,255,.6);padding:8px 16px;font-size:.85rem;}
+  .savebar.has{background:var(--gold);color:var(--navy);} .savebar.has .btn:not(.ghost){background:var(--navy);color:#fff;} .savebar.has .btn.ghost{color:var(--navy);border-color:var(--navy);}
+  .pbtns{position:absolute;left:10px;bottom:10px;display:flex;gap:6px;}
+  .pbtns button{background:rgba(23,51,63,.88);color:#fff;border:none;font-weight:700;font-size:.8rem;padding:7px 14px;border-radius:999px;cursor:pointer;}
+  .pbtns button:hover{background:var(--blue);}
+  .pmedia{position:absolute;inset:0;}
+  .modal{position:fixed;inset:0;background:rgba(23,51,63,.6);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;}
+  .modal-box{background:#fff;border-radius:14px;padding:20px;max-width:520px;width:100%;max-height:94vh;overflow:auto;}
+  .modal-box h3{margin:0 0 4px;} .mp{margin:0 0 12px;color:var(--ink-soft);font-size:.9rem;}
+  .fwrap{position:relative;display:block;width:fit-content;max-width:100%;margin:0 auto;touch-action:none;cursor:crosshair;background:var(--surface-2);border-radius:8px;overflow:hidden;line-height:0;}
+  .fwrap img{width:auto;height:auto;max-width:100%;max-height:52vh;display:block;}
+  #fdot{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 2px var(--blue),0 2px 8px rgba(0,0,0,.5);pointer-events:none;background:rgba(46,126,176,.25);}
+  .fprev{display:flex;gap:16px;margin:14px 0;align-items:flex-end;} .fprev small{display:block;color:var(--ink-soft);font-weight:700;margin-bottom:4px;font-size:.75rem;}
+  .pv{overflow:hidden;border-radius:8px;background:var(--surface-2);} .pv img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pv.sq{width:120px;aspect-ratio:1/1;} .pv.r43{width:160px;aspect-ratio:4/3;}
+  .macts{display:flex;gap:10px;justify-content:flex-end;}
   .saved{color:var(--basil);font-weight:700;font-size:.8rem;}
   .off{opacity:.55;}
   .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#fff;}
@@ -103,13 +121,32 @@
   <div class="top"><h1>Admin · Franca</h1><div style="display:flex;gap:8px;"><a href="index.html" target="_blank">Ver sitio</a><button id="logout">Salir</button></div></div>
   <div class="wrap">
     <div class="tabs">
-      <button class="tab on" data-tab="orders">Pedidos</button>
-      <button class="tab" data-tab="catalog">Catálogo</button>
+      <button class="tab on" data-tab="catalog">Catálogo</button>
+      <button class="tab" data-tab="orders">Pedidos</button>
       <button class="tab" data-tab="stats">Estadísticas</button>
     </div>
-    <div id="tab-orders"></div>
-    <div id="tab-catalog" class="hidden"></div>
+    <div id="tab-orders" class="hidden"></div>
+    <div id="tab-catalog"></div>
     <div id="tab-stats" class="hidden"></div>
+  </div>
+</div>
+
+<div id="savebar" class="savebar hidden">
+  <span id="save-count">Sin cambios pendientes</span>
+  <button class="btn ghost small hidden" id="discard">Descartar</button>
+  <button class="btn" id="save-all" disabled>Guardar todos los cambios</button>
+</div>
+
+<div id="focus-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>Encuadrá la foto</h3>
+    <p class="mp">Tocá o arrastrá sobre la foto para elegir qué parte se ve. Abajo ves cómo queda.</p>
+    <div class="fwrap" id="fwrap"><img id="fimg" alt=""><span id="fdot"></span></div>
+    <div class="fprev">
+      <div><small>En el menú</small><div class="pv sq"><img id="pv1" alt=""></div></div>
+      <div><small>Al abrir el plato</small><div class="pv r43"><img id="pv2" alt=""></div></div>
+    </div>
+    <div class="macts"><button class="btn ghost" id="f-cancel">Cancelar</button><button class="btn" id="f-ok">Listo</button></div>
   </div>
 </div>
 
@@ -166,7 +203,7 @@
       if (!rows || !rows.length) throw new Error("Este usuario no tiene permisos de administrador.");
       $("login-view").classList.add("hidden");
       $("app-view").classList.remove("hidden");
-      showTab("orders");
+      showTab("catalog");
     });
   }
 
@@ -176,6 +213,7 @@
   function showTab(name){
     document.querySelectorAll(".tab").forEach(function(t){ t.classList.toggle("on", t.dataset.tab === name); });
     ["orders","catalog","stats"].forEach(function(n){ $("tab-" + n).classList.toggle("hidden", n !== name); });
+    $("savebar").classList.toggle("hidden", name !== "catalog");
     if (name === "orders") loadOrders();
     if (name === "catalog") loadCatalog();
     if (name === "stats") loadStats();
@@ -216,24 +254,32 @@
   }
 
   /* ---------- catalog ---------- */
-  function loadCatalogKeepScroll(){ var y = window.scrollY; loadCatalog().then(function(){ window.scrollTo(0, y); }); }
+  function loadCatalogKeepScroll(){ var y = window.scrollY; return loadCatalog().then(function(){ window.scrollTo(0, y); }); }
   function loadCatalog(){
-    $("tab-catalog").innerHTML = '<p>Cargando…</p>';
+    if ($("tab-catalog").innerHTML === "") $("tab-catalog").innerHTML = '<p>Cargando…</p>';
     return Promise.all([rest("categories?select=*&order=sort.asc"), rest("products?select=*&order=sort.asc,id.asc")]).then(function(r){
       CATS = r[0]; PRODS = r[1]; renderCatalog();
     }).catch(function(e){ $("tab-catalog").innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
   }
   function num(v){ v = String(v).trim(); return v === "" ? null : Number(v); }
-  function photoSrc(u){ return u ? (/^https?:/.test(u) ? u : u) : ""; }
+  function posOf(str){
+    var m = String(str || "50% 50%").match(/([\d.]+)%\s+([\d.]+)%/);
+    return m ? {x: Number(m[1]), y: Number(m[2])} : {x: 50, y: 50};
+  }
+  function mediaHtml(p, url, pos){
+    return url ? '<img src="' + esc(url) + '" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:' + esc(pos || "50% 50%") + '">'
+               : '<div class="ph" style="background:' + esc(p.color || "#9DB7C4") + '">' + esc(p.name.charAt(0)) + '</div>';
+  }
   function prodRow(p){
     var low = p.stock != null && p.stock > 0 && p.stock <= (p.low_stock_at == null ? 3 : p.low_stock_at);
     var chips = (p.active ? "" : '<span class="chip grey">Oculto</span>') +
-      (p.stock === 0 ? '<span class="chip warn">Agotado</span>' : low ? '<span class="chip gold">Quedan ' + p.stock + '</span>' : "") +
+      (p.stock === 0 ? '<span class="chip warn">Agotado · oculto solo</span>' : low ? '<span class="chip gold">Quedan ' + p.stock + '</span>' : "") +
       (p.max_per_order != null ? '<span class="chip">Máx. ' + p.max_per_order + '</span>' : "");
-    return '<article class="pcard' + (p.active ? "" : " off") + '" data-id="' + p.id + '" data-name="' + esc((p.name + " " + (p.description || "")).toLowerCase()) + '">' +
-      '<button type="button" class="pphoto" data-photo="' + p.id + '" title="Cambiar foto">' +
-      (p.photo_url ? '<img src="' + esc(photoSrc(p.photo_url)) + '" alt="" loading="lazy">' : '<div class="ph" style="background:' + esc(p.color || "#9DB7C4") + '">' + esc(p.name.charAt(0)) + '</div>') +
-      '<div class="pchips">' + chips + '</div><span class="pchange">Cambiar foto</span></button>' +
+    return '<article class="pcard' + (p.active && p.stock !== 0 ? "" : " off") + '" data-id="' + p.id + '" data-photo="' + esc(p.photo_url || "") + '" data-pos="' + esc(p.photo_pos || "50% 50%") + '" data-name="' + esc((p.name + " " + (p.description || "")).toLowerCase()) + '">' +
+      '<div class="pphoto"><div class="pmedia">' + mediaHtml(p, p.photo_url, p.photo_pos) + '</div>' +
+      '<div class="pchips">' + chips + '</div>' +
+      '<div class="pbtns"><button type="button" data-upload="' + p.id + '">' + (p.photo_url ? "Cambiar foto" : "Subir foto") + '</button>' +
+      (p.photo_url ? '<button type="button" data-frame="' + p.id + '">Encuadrar</button>' : "") + '</div></div>' +
       '<div class="pbody">' +
       '<input type="text" class="pname" data-k="name" value="' + esc(p.name) + '" aria-label="Nombre">' +
       '<input type="text" class="pdesc" data-k="description" value="' + esc(p.description) + '" placeholder="Descripción" aria-label="Descripción">' +
@@ -242,9 +288,31 @@
       '<div><label>Stock</label><input type="number" min="0" data-k="stock" value="' + (p.stock == null ? "" : p.stock) + '" placeholder="∞"></div>' +
       '<div><label>Máx./pedido</label><input type="number" min="1" data-k="max_per_order" value="' + (p.max_per_order == null ? "" : p.max_per_order) + '" placeholder="—"></div></div>' +
       '<div class="pfoot"><label class="sw"><input type="checkbox" data-k="active"' + (p.active ? " checked" : "") + '> Visible</label><span class="grow"></span>' +
-      '<span class="saved"></span><button class="btn small ghost" data-del="' + p.id + '">Eliminar</button><button class="btn small" data-save="' + p.id + '" disabled>Guardar</button></div>' +
+      '<button class="btn small ghost" data-del="' + p.id + '">Eliminar</button></div>' +
       '</div></article>';
   }
+
+  function pendingCards(){ return Array.prototype.slice.call($("tab-catalog").querySelectorAll(".pcard.dirty")); }
+  function updateSaveBar(){
+    var n = pendingCards().length;
+    $("save-count").textContent = n ? (n + (n > 1 ? " platos con cambios sin guardar" : " plato con cambios sin guardar")) : "Sin cambios pendientes";
+    $("save-all").disabled = !n;
+    $("discard").classList.toggle("hidden", !n);
+    $("savebar").classList.toggle("has", n > 0);
+  }
+  function markDirty(card){ card.classList.add("dirty"); updateSaveBar(); }
+  window.addEventListener("beforeunload", function(e){ if (pendingCards().length){ e.preventDefault(); e.returnValue = ""; } });
+
+  function cardPatch(card){
+    var patch = {};
+    card.querySelectorAll("[data-k]").forEach(function(inp){
+      var k = inp.dataset.k, v = inp.value;
+      patch[k] = (k === "active") ? inp.checked : (k === "price") ? Number(v) : (k === "stock" || k === "max_per_order") ? num(v) : (k === "description" ? (v.trim() || null) : v.trim());
+    });
+    if (card.dataset.photoDirty === "1"){ patch.photo_url = card.dataset.photo || null; patch.photo_pos = card.dataset.pos; }
+    return patch;
+  }
+
   function renderCatalog(){
     var html = '<details class="card" style="padding:0"><summary style="cursor:pointer;padding:14px 18px;font-weight:900;font-size:1.05rem;color:var(--blue)">+ Agregar plato nuevo</summary><div style="padding:0 18px 18px"><div class="fields">' +
       '<div><label>Categoría</label><select id="n-cat">' + CATS.map(function(c){ return '<option value="' + esc(c.id) + '">' + esc(c.title) + '</option>'; }).join("") + '</select></div>' +
@@ -254,7 +322,7 @@
       '<div><label>Stock (vacío = sin límite)</label><input type="number" id="n-stock" min="0"></div>' +
       '<div><label>Máx. por pedido</label><input type="number" id="n-max" min="1"></div>' +
       '<div class="row-actions"><button class="btn" id="n-add">Agregar</button><span class="err" id="n-err" style="margin:0"></span></div></div>' +
-      '<p style="color:var(--ink-soft);font-size:.85rem;margin:8px 0 0">Después de crearlo, tocá la foto para subirla.</p></div></details>';
+      '<p style="color:var(--ink-soft);font-size:.85rem;margin:8px 0 0">Después de crearlo, subí su foto desde la tarjeta.</p></div></details>';
     html += '<div class="cat-nav">' + CATS.map(function(c){ return '<a href="#cat-' + esc(c.id) + '">' + esc(c.title) + '</a>'; }).join("") +
       '<input type="text" id="q" placeholder="Buscar plato…"></div>';
     CATS.forEach(function(c){
@@ -263,56 +331,74 @@
         (list.length ? '<div class="pgrid-wrap">' + list.map(prodRow).join("") + '</div>' : '<p style="color:var(--ink-soft);margin:0">Sin platos.</p>');
     });
     $("tab-catalog").innerHTML = html;
+    updateSaveBar();
+
     $("q").addEventListener("input", function(){
       var t = this.value.trim().toLowerCase();
       $("tab-catalog").querySelectorAll(".pcard").forEach(function(c){ c.style.display = !t || c.dataset.name.indexOf(t) !== -1 ? "" : "none"; });
     });
     $("tab-catalog").querySelectorAll(".pcard").forEach(function(card){
-      function dirty(){ card.classList.add("dirty"); card.querySelector("[data-save]").disabled = false; card.querySelector(".saved").textContent = ""; }
+      function dirty(e){ if (e.target.closest(".pbody")) markDirty(card); }
       card.addEventListener("input", dirty); card.addEventListener("change", dirty);
     });
-
     $("n-add").addEventListener("click", function(){
       var name = $("n-name").value.trim(), price = num($("n-price").value);
       if (!name || price == null){ $("n-err").textContent = "Poné nombre y precio."; return; }
       var sameCat = PRODS.filter(function(p){ return p.category_id === $("n-cat").value; });
       rest("products", {method:"POST", headers:{Prefer:"return=minimal"}, body: JSON.stringify({
         category_id: $("n-cat").value, name: name, description: $("n-desc").value.trim() || null, price: price,
-        stock: num($("n-stock").value), max_per_order: num($("n-max").value), sort: sameCat.length, color: "#EAF2F6"
+        stock: num($("n-stock").value), max_per_order: num($("n-max").value), sort: sameCat.length, color: "#9DB7C4"
       })}).then(loadCatalog).catch(function(e){ $("n-err").textContent = e.message; });
     });
-    $("tab-catalog").querySelectorAll("[data-save]").forEach(function(b){ b.addEventListener("click", function(){
-      var row = b.closest(".pcard"), patch = {};
-      row.querySelectorAll("[data-k]").forEach(function(inp){
-        var k = inp.dataset.k, v = inp.value;
-        patch[k] = (k === "active") ? inp.checked : (k === "price") ? Number(v) : (k === "stock" || k === "max_per_order") ? num(v) : (k === "description" ? (v.trim() || null) : v.trim());
-      });
-      var tag = row.querySelector(".saved"); tag.textContent = "Guardando…"; b.disabled = true;
-      rest("products?id=eq." + b.dataset.save, {method:"PATCH", headers:{Prefer:"return=minimal"}, body: JSON.stringify(patch)}).then(function(){
-        loadCatalogKeepScroll();
-      }).catch(function(e){ tag.textContent = ""; alert("No se pudo guardar: " + e.message); b.disabled = false; });
-    }); });
     $("tab-catalog").querySelectorAll("[data-del]").forEach(function(b){ b.addEventListener("click", function(){
       var p = PRODS.filter(function(x){ return String(x.id) === b.dataset.del; })[0];
-      if (!confirm("¿Eliminar \"" + p.name + "\"? Los pedidos anteriores se conservan. Si solo querés sacarlo un tiempo, usá 'Oculto'.")) return;
-      rest("products?id=eq." + b.dataset.del, {method:"DELETE"}).then(loadCatalog).catch(function(e){ alert(e.message); });
+      if (!confirm("¿Eliminar \"" + p.name + "\"? Los pedidos anteriores se conservan. Si solo querés sacarlo un tiempo, destildá 'Visible'.")) return;
+      rest("products?id=eq." + b.dataset.del, {method:"DELETE"}).then(loadCatalogKeepScroll).catch(function(e){ alert(e.message); });
     }); });
-    $("tab-catalog").querySelectorAll("[data-photo]").forEach(function(b){ b.addEventListener("click", function(){ pickPhoto(b.dataset.photo, b); }); });
+    $("tab-catalog").querySelectorAll("[data-upload]").forEach(function(b){ b.addEventListener("click", function(){ pickPhoto(b.closest(".pcard")); }); });
+    $("tab-catalog").querySelectorAll("[data-frame]").forEach(function(b){ b.addEventListener("click", function(){
+      var card = b.closest(".pcard"); openFocus(card, card.dataset.photo, card.dataset.pos);
+    }); });
   }
 
-  /* ---------- photo upload (resized in the browser) ---------- */
-  var fileInput = $("file-input"), photoTarget = null;
-  function pickPhoto(id, btn){ photoTarget = {id: id, btn: btn}; fileInput.value = ""; fileInput.click(); }
+  $("save-all").addEventListener("click", function(){
+    var cards = pendingCards(); if (!cards.length) return;
+    var patches = [];
+    for (var i = 0; i < cards.length; i++){
+      var pt = cardPatch(cards[i]);
+      if (!pt.name){ alert("Hay un plato sin nombre. Completalo para poder guardar."); return; }
+      if (isNaN(pt.price) || pt.price < 0){ alert("Revisá el precio de \"" + pt.name + "\"."); return; }
+      patches.push({card: cards[i], patch: pt});
+    }
+    var btn = $("save-all"); btn.disabled = true; btn.textContent = "Guardando…";
+    Promise.all(patches.map(function(x){
+      return rest("products?id=eq." + x.card.dataset.id, {method:"PATCH", headers:{Prefer:"return=minimal"}, body: JSON.stringify(x.patch)})
+        .then(function(){ return null; }, function(e){ return x.patch.name + ": " + e.message; });
+    })).then(function(res){
+      var errs = res.filter(Boolean);
+      btn.textContent = "Guardar todos los cambios";
+      if (errs.length) alert("No se pudo guardar:\n\n" + errs.join("\n"));
+      return loadCatalogKeepScroll();
+    });
+  });
+  $("discard").addEventListener("click", function(){
+    if (confirm("¿Descartar todos los cambios sin guardar?")) loadCatalogKeepScroll();
+  });
+
+  /* ---------- photo upload + framing ---------- */
+  var fileInput = $("file-input"), photoCard = null;
+  function pickPhoto(card){ photoCard = card; fileInput.value = ""; fileInput.click(); }
   fileInput.addEventListener("change", function(){
-    var f = fileInput.files[0]; if (!f || !photoTarget) return;
-    var t = photoTarget; t.btn.querySelector("span").textContent = "subiendo…";
-    resize(f, 1000).then(function(blob){
-      var path = "p" + t.id + "-" + Date.now() + ".jpg";
+    var f = fileInput.files[0]; if (!f || !photoCard) return;
+    var card = photoCard, btn = card.querySelector("[data-upload]"), old = btn.textContent; btn.textContent = "Subiendo…"; btn.disabled = true;
+    resize(f, 1200).then(function(blob){
+      var path = "p" + card.dataset.id + "-" + Date.now() + ".jpg";
       return fetch(SUPA + "/storage/v1/object/product-photos/" + path, {method:"POST", headers:{apikey:KEY, Authorization:"Bearer " + session.access, "Content-Type":"image/jpeg"}, body: blob})
         .then(function(r){ if (!r.ok) return r.text().then(function(x){ throw new Error(x); }); return SUPA + "/storage/v1/object/public/product-photos/" + path; });
     }).then(function(url){
-      return rest("products?id=eq." + t.id, {method:"PATCH", headers:{Prefer:"return=minimal"}, body: JSON.stringify({photo_url: url})}).then(loadCatalog);
-    }).catch(function(e){ alert("No se pudo subir la foto: " + e.message); t.btn.querySelector("span").textContent = "foto"; });
+      btn.textContent = old; btn.disabled = false;
+      openFocus(card, url, "50% 50%");
+    }).catch(function(e){ alert("No se pudo subir la foto: " + e.message); btn.textContent = old; btn.disabled = false; });
   });
   function resize(file, max){
     return new Promise(function(res, rej){
@@ -327,6 +413,44 @@
       img.src = u;
     });
   }
+
+  var fState = {card:null, url:"", x:50, y:50};
+  function fRender(){
+    var pos = fState.x.toFixed(0) + "% " + fState.y.toFixed(0) + "%";
+    $("fdot").style.left = fState.x + "%"; $("fdot").style.top = fState.y + "%";
+    $("pv1").style.objectPosition = pos; $("pv2").style.objectPosition = pos;
+  }
+  function openFocus(card, url, pos){
+    var p = posOf(pos);
+    fState = {card: card, url: url, x: p.x, y: p.y};
+    $("fimg").src = url; $("pv1").src = url; $("pv2").src = url;
+    $("focus-modal").classList.remove("hidden");
+    fRender();
+  }
+  function fSet(e){
+    var r = $("fimg").getBoundingClientRect();
+    fState.x = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100));
+    fState.y = Math.max(0, Math.min(100, (e.clientY - r.top) / r.height * 100));
+    fRender();
+  }
+  var fDrag = false;
+  $("fwrap").addEventListener("pointerdown", function(e){ fDrag = true; try { this.setPointerCapture(e.pointerId); } catch(x){} fSet(e); });
+  $("fwrap").addEventListener("pointermove", function(e){ if (fDrag) fSet(e); });
+  $("fwrap").addEventListener("pointerup", function(){ fDrag = false; });
+  $("f-cancel").addEventListener("click", function(){ $("focus-modal").classList.add("hidden"); });
+  $("f-ok").addEventListener("click", function(){
+    var card = fState.card, pos = fState.x.toFixed(0) + "% " + fState.y.toFixed(0) + "%";
+    card.dataset.photo = fState.url; card.dataset.pos = pos; card.dataset.photoDirty = "1";
+    card.querySelector(".pmedia").innerHTML = '<img src="' + esc(fState.url) + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:' + pos + '">';
+    if (!card.querySelector("[data-frame]")){
+      var fb = document.createElement("button"); fb.type = "button"; fb.textContent = "Encuadrar"; fb.setAttribute("data-frame", card.dataset.id);
+      fb.addEventListener("click", function(){ openFocus(card, card.dataset.photo, card.dataset.pos); });
+      card.querySelector(".pbtns").appendChild(fb);
+    }
+    card.querySelector("[data-upload]").textContent = "Cambiar foto";
+    $("focus-modal").classList.add("hidden");
+    markDirty(card);
+  });
 
   /* ---------- stats ---------- */
   function loadStats(){

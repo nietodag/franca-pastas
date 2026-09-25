@@ -909,11 +909,11 @@
       CATEGORIES = []; PROD = {};
       EXTRAS = {title:"Salsas & Extras", note:"", salsas:[], otros:[]};
       cats.forEach(function(c){
-        var items = prods.filter(function(p){ return p.category_id === c.id; }).map(function(p){
+        var items = prods.filter(function(p){ return p.category_id === c.id && !(p.stock != null && p.stock <= 0); }).map(function(p){
           var out = p.stock != null && p.stock <= 0;
           PROD[c.id + "::" + p.name] = {id:p.id, stock:p.stock, max:p.max_per_order, price:p.price};
           return {pid:p.id, name:p.name, desc:p.description || "", price:p.price, color:p.color, badge:p.badge, shape:p.shape,
-                  photo:p.photo_url, outOfStock:out, stock:p.stock, max:p.max_per_order, lowAt:p.low_stock_at};
+                  photo:p.photo_url, photoPos:p.photo_pos, outOfStock:out, stock:p.stock, max:p.max_per_order, lowAt:p.low_stock_at};
         });
         if (c.kind === "extra"){
           EXTRAS.title = c.title; EXTRAS.note = c.note || "";
@@ -1324,7 +1324,7 @@
       var stockBadgeHtml = item.outOfStock ? '<span class="badge out-of-stock">Sin stock</span>' : '';
       var unitBadgeHtml = '<span class="unit-badge">'+cat.note+'</span>';
       var photoHtml = item.photo
-        ? '<img src="'+item.photo+'" alt="'+item.name+'" loading="lazy">'
+        ? '<img src="'+item.photo+'" alt="'+item.name+'" loading="lazy" style="object-position:'+(item.photoPos || '50% 50%')+'">'
         : SHAPES[cat.shape](item.color);
       var lowHtml = (!item.outOfStock && item.stock != null && item.stock <= (item.lowAt == null ? 3 : item.lowAt))
         ? '<span class="badge low-stock">' + (item.stock === 1 ? '¡Última!' : '¡Últimas ' + item.stock + '!') + '</span>' : '';
@@ -1418,7 +1418,7 @@
   var featureItem = null;
   CATEGORIES.forEach(function(c){ c.items.forEach(function(i){ if (c.id === "canelones" && i.name === "Seso & Verdura") featureItem = i; }); });
   if (featureItem){
-    document.getElementById('feature-photo').innerHTML = featureItem.photo ? '<img src="' + featureItem.photo + '" alt="Canelón de espinaca" loading="lazy">' : '';
+    document.getElementById('feature-photo').innerHTML = featureItem.photo ? '<img src="' + featureItem.photo + '" alt="Canelón de espinaca" loading="lazy" style="object-position:' + (featureItem.photoPos || '50% 50%') + '">' : '';
     document.getElementById('feature-price').textContent = featureItem.price.toLocaleString('es-AR');
     document.querySelector('.feature').style.display = '';
   } else {
