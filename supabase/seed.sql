@@ -2,6 +2,9 @@
 alter table categories add column if not exists shape text, add column if not exists kind text not null default 'menu';
 alter table products add column if not exists color text, add column if not exists badge text, add column if not exists shape text;
 
+drop policy if exists "admin ve admins" on admins;
+create policy "admin ve admins" on admins for select using (user_id = auth.uid());
+
 insert into storage.buckets (id, name, public) values ('product-photos','product-photos',true) on conflict (id) do nothing;
 drop policy if exists "fotos publicas" on storage.objects;
 drop policy if exists "fotos admin" on storage.objects;
