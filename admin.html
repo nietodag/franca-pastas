@@ -121,6 +121,26 @@
     <label for="pw">Contraseña</label><input type="password" id="pw" autocomplete="current-password" required>
     <div class="err" id="login-err"></div>
     <button class="btn" type="submit" style="width:100%;margin-top:6px;">Entrar</button>
+    <button type="button" id="forgot-link" style="background:none;border:none;color:var(--blue);font-weight:700;font-size:.82rem;margin-top:14px;cursor:pointer;padding:0;">¿Olvidaste tu contraseña?</button>
+  </form>
+  <form id="forgot-form" class="hidden">
+    <p style="margin:0 0 10px;color:var(--ink-soft);font-size:.85rem">Te mandamos un link a tu email para elegir una contraseña nueva.</p>
+    <label for="fem">Email</label><input type="email" id="fem" autocomplete="username" required>
+    <div class="err" id="forgot-err"></div>
+    <div id="forgot-ok" class="hidden" style="color:var(--basil);font-weight:700;font-size:.85rem;margin-top:10px;">Listo, revisá tu correo (y la carpeta de spam).</div>
+    <button class="btn" type="submit" style="width:100%;margin-top:10px;">Enviar link</button>
+    <button type="button" id="forgot-back" style="background:none;border:none;color:var(--ink-soft);font-weight:700;font-size:.82rem;margin-top:14px;cursor:pointer;padding:0;">‹ Volver a iniciar sesión</button>
+  </form>
+</div>
+
+<div id="recovery-view" class="login hidden">
+  <h2>Elegí una contraseña nueva</h2>
+  <p>Para tu usuario: <b id="rec-email"></b></p>
+  <form id="recovery-form">
+    <label for="rpw">Contraseña nueva</label><input type="password" id="rpw" autocomplete="new-password" minlength="6" required>
+    <label for="rpw2">Repetila</label><input type="password" id="rpw2" autocomplete="new-password" minlength="6" required>
+    <div class="err" id="recovery-err"></div>
+    <button class="btn" type="submit" style="width:100%;margin-top:6px;">Guardar contraseña</button>
   </form>
 </div>
 
@@ -204,6 +224,48 @@
     }).catch(function(err){ $("login-err").textContent = err.message === "Invalid login credentials" ? "Email o contraseña incorrectos." : err.message; });
   });
   $("logout").addEventListener("click", function(){ try { localStorage.removeItem(SESSION_KEY); } catch(e){} location.reload(); });
+
+  $("forgot-link").addEventListener("click", function(){
+    $("login-form").classList.add("hidden"); $("forgot-form").classList.remove("hidden");
+    $("forgot-ok").classList.add("hidden"); $("forgot-err").textContent = "";
+    $("fem").value = $("em").value;
+  });
+  $("forgot-back").addEventListener("click", function(){ $("forgot-form").classList.add("hidden"); $("login-form").classList.remove("hidden"); });
+  $("forgot-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    $("forgot-err").textContent = ""; $("forgot-ok").classList.add("hidden");
+    var btn = e.target.querySelector("button[type=submit]"); btn.disabled = true;
+    fetch(SUPA + "/auth/v1/recover", {method:"POST", headers:{apikey:KEY, "Content-Type":"application/json"},
+      body: JSON.stringify({email: $("fem").value.trim(), options:{redirect_to: location.origin + location.pathname}})})
+      .then(function(r){ btn.disabled = false; if (r.ok) $("forgot-ok").classList.remove("hidden"); else $("forgot-err").textContent = "No se pudo enviar. Probá de nuevo en un momento."; })
+      .catch(function(){ btn.disabled = false; $("forgot-err").textContent = "No se pudo enviar. Revisá tu conexión."; });
+  });
+
+  /* ---------- password recovery link ---------- */
+  var recoveryToken = null;
+  (function(){
+    var h = location.hash.replace(/^#/, "");
+    if (!h) return;
+    var p = new URLSearchParams(h);
+    if (p.get("type") === "recovery" && p.get("access_token")){
+      recoveryToken = p.get("access_token");
+      history.replaceState(null, "", location.pathname + location.search);
+      $("login-view").classList.add("hidden");
+      $("recovery-view").classList.remove("hidden");
+      fetch(SUPA + "/auth/v1/user", {headers:{apikey:KEY, Authorization:"Bearer " + recoveryToken}})
+        .then(function(r){ return r.json(); }).then(function(u){ $("rec-email").textContent = (u && u.email) || ""; });
+    }
+  })();
+  $("recovery-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    $("recovery-err").textContent = "";
+    if ($("rpw").value !== $("rpw2").value){ $("recovery-err").textContent = "Las contraseñas no coinciden."; return; }
+    var btn = e.target.querySelector("button[type=submit]"); btn.disabled = true;
+    fetch(SUPA + "/auth/v1/user", {method:"PUT", headers:{apikey:KEY, Authorization:"Bearer " + recoveryToken, "Content-Type":"application/json"}, body: JSON.stringify({password: $("rpw").value})})
+      .then(function(r){ return r.json().then(function(j){ if (!r.ok) throw new Error(j.msg || "No se pudo guardar la contraseña."); return j; }); })
+      .then(function(){ alert("Contraseña actualizada. Ahora iniciá sesión con la nueva."); location.href = location.pathname; })
+      .catch(function(e){ btn.disabled = false; $("recovery-err").textContent = e.message; });
+  });
 
   function checkAdmin(){
     return rest("admins?select=user_id").then(function(rows){
