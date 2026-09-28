@@ -1425,6 +1425,10 @@
     dropdown.appendChild(a);
   });
   function arDayOfMonth(){ return new Date(Date.now() - 3 * 3600 * 1000).getUTCDate(); }
+  function trimLeadingCat(catTitle, itemName){
+    var re = new RegExp('^' + catTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+', 'i');
+    return itemName.replace(re, '');
+  }
   var featureItem = null, featureCat = null, isDay29 = arDayOfMonth() === 29;
   if (isDay29){
     CATEGORIES.forEach(function(c){ c.items.forEach(function(i){ if (i.day29 && !featureItem){ featureItem = i; featureCat = c; } }); });
@@ -1437,7 +1441,7 @@
     document.getElementById('feature-eyebrow').textContent = isDay29 ? '¡Hoy es 29, día del ñoqui!' : 'Sugerencia de la semana';
     var ft = document.getElementById('feature-title');
     ft.textContent = featureCat.title;
-    var fsc = document.createElement('span'); fsc.className = 'script'; fsc.textContent = featureItem.name.toLowerCase();
+    var fsc = document.createElement('span'); fsc.className = 'script'; fsc.textContent = (isDay29 ? trimLeadingCat(featureCat.title, featureItem.name) : featureItem.name).toLowerCase();
     ft.appendChild(fsc);
     document.getElementById('feature-desc').textContent = featureItem.desc;
     document.getElementById('feature-l1').textContent = featureCat.note;
