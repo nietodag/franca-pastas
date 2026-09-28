@@ -346,7 +346,8 @@
     var chips = (p.active ? "" : '<span class="chip grey">Oculto</span>') +
       (p.stock === 0 ? '<span class="chip warn">Agotado · oculto solo</span>' : low ? '<span class="chip gold">Quedan ' + p.stock + '</span>' : "") +
       (p.max_per_order != null ? '<span class="chip">Máx. ' + p.max_per_order + '</span>' : "") +
-      (p.featured ? '<span class="chip gold">Sugerencia de la semana</span>' : "");
+      (p.featured ? '<span class="chip gold">Sugerencia de la semana</span>' : "") +
+      (p.day29 ? '<span class="chip gold">Destacado el 29</span>' : "");
     return '<article class="pcard' + (p.active && p.stock !== 0 ? "" : " off") + '" data-id="' + p.id + '" data-photo="' + esc(p.photo_url || "") + '" data-pos="' + esc(p.photo_pos || "50% 50%") + '" data-name="' + esc((p.name + " " + (p.description || "")).toLowerCase()) + '">' +
       '<div class="pphoto"><div class="pmedia">' + mediaHtml(p, p.photo_url, p.photo_pos) + '</div>' +
       '<div class="pchips">' + chips + '</div>' +
@@ -360,7 +361,8 @@
       '<div><label>Stock</label><input type="number" min="0" data-k="stock" value="' + (p.stock == null ? "" : p.stock) + '" placeholder="∞"></div>' +
       '<div><label>Máx./pedido</label><input type="number" min="1" data-k="max_per_order" value="' + (p.max_per_order == null ? "" : p.max_per_order) + '" placeholder="—"></div></div>' +
       '<div class="pfoot"><label class="sw"><input type="checkbox" data-k="active"' + (p.active ? " checked" : "") + '> Visible</label>' +
-      '<label class="sw" title="Aparece destacado arriba del menú"><input type="checkbox" data-k="featured" data-feat="1"' + (p.featured ? " checked" : "") + '> Sugerencia de la semana</label><span class="grow"></span>' +
+      '<label class="sw" title="Aparece destacado arriba del menú"><input type="checkbox" data-k="featured" data-feat="1"' + (p.featured ? " checked" : "") + '> Sugerencia de la semana</label>' +
+      '<label class="sw" title="Aparece destacado arriba del menú automáticamente todos los 29"><input type="checkbox" data-k="day29" data-day29="1"' + (p.day29 ? " checked" : "") + '> Destacar el 29 (día del ñoqui)</label><span class="grow"></span>' +
       '<button class="btn small ghost" data-del="' + p.id + '">Eliminar</button></div>' +
       '</div></article>';
   }
@@ -381,7 +383,7 @@
     var patch = {};
     card.querySelectorAll("[data-k]").forEach(function(inp){
       var k = inp.dataset.k, v = inp.value;
-      patch[k] = (k === "active" || k === "featured") ? inp.checked : (k === "price") ? Number(v) : (k === "stock" || k === "max_per_order") ? num(v) : (k === "description" ? (v.trim() || null) : v.trim());
+      patch[k] = (k === "active" || k === "featured" || k === "day29") ? inp.checked : (k === "price") ? Number(v) : (k === "stock" || k === "max_per_order") ? num(v) : (k === "description" ? (v.trim() || null) : v.trim());
     });
     if (card.dataset.photoDirty === "1"){ patch.photo_url = card.dataset.photo || null; patch.photo_pos = card.dataset.pos; }
     return patch;
@@ -429,6 +431,9 @@
         if (!e.target.closest(".pbody")) return;
         if (e.target.dataset && e.target.dataset.feat && e.target.checked){
           $("tab-catalog").querySelectorAll("[data-feat]").forEach(function(o){ if (o !== e.target) o.checked = false; });
+        }
+        if (e.target.dataset && e.target.dataset.day29 && e.target.checked){
+          $("tab-catalog").querySelectorAll("[data-day29]").forEach(function(o){ if (o !== e.target) o.checked = false; });
         }
         markDirty(card);
       }
@@ -498,7 +503,11 @@
     }
     var btn = $("save-all"); btn.disabled = true; btn.textContent = "Guardando…";
     var newFeatured = patches.some(function(x){ return x.patch.featured === true; });
-    (newFeatured ? rest("products?featured=eq.true", {method:"PATCH", headers:{Prefer:"return=minimal"}, body: JSON.stringify({featured:false})}) : Promise.resolve()).then(function(){
+    var newDay29 = patches.some(function(x){ return x.patch.day29 === true; });
+    Promise.all([
+      newFeatured ? rest("products?featured=eq.true", {method:"PATCH", headers:{Prefer:"return=minimal"}, body: JSON.stringify({featured:false})}) : Promise.resolve(),
+      newDay29 ? rest("products?day29=eq.true", {method:"PATCH", headers:{Prefer:"return=minimal"}, body: JSON.stringify({day29:false})}) : Promise.resolve()
+    ]).then(function(){
     var catCalls = heads.map(function(h){
       var body = {};
       h.querySelectorAll("[data-c]").forEach(function(i){ body[i.dataset.c] = i.value.trim() || null; });

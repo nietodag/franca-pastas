@@ -704,7 +704,7 @@
 <div class="feature" style="display:none">
   <article class="feature-card">
     <div class="feature-copy">
-      <span class="feature-eyebrow">Sugerencia de la semana</span>
+      <span class="feature-eyebrow" id="feature-eyebrow">Sugerencia de la semana</span>
       <h2 class="feature-title" id="feature-title"></h2>
       <p class="feature-desc" id="feature-desc"></p>
       <div class="feature-foot">
@@ -913,7 +913,7 @@
           var out = p.stock != null && p.stock <= 0;
           PROD[c.id + "::" + p.name] = {id:p.id, stock:p.stock, max:p.max_per_order, price:p.price};
           return {pid:p.id, name:p.name, desc:p.description || "", price:p.price, color:p.color, badge:p.badge, shape:p.shape,
-                  photo:p.photo_url, photoPos:p.photo_pos, featured:!!p.featured, outOfStock:out, stock:p.stock, max:p.max_per_order, lowAt:p.low_stock_at};
+                  photo:p.photo_url, photoPos:p.photo_pos, featured:!!p.featured, day29:!!p.day29, outOfStock:out, stock:p.stock, max:p.max_per_order, lowAt:p.low_stock_at};
         });
         if (c.kind === "extra"){
           EXTRAS.title = c.title; EXTRAS.note = c.note || "";
@@ -1424,9 +1424,17 @@
     a.addEventListener('click', closeDropdown);
     dropdown.appendChild(a);
   });
-  var featureItem = null, featureCat = null;
-  CATEGORIES.forEach(function(c){ c.items.forEach(function(i){ if (i.featured && !featureItem){ featureItem = i; featureCat = c; } }); });
+  function arDayOfMonth(){ return new Date(Date.now() - 3 * 3600 * 1000).getUTCDate(); }
+  var featureItem = null, featureCat = null, isDay29 = arDayOfMonth() === 29;
+  if (isDay29){
+    CATEGORIES.forEach(function(c){ c.items.forEach(function(i){ if (i.day29 && !featureItem){ featureItem = i; featureCat = c; } }); });
+  }
+  if (!featureItem){
+    isDay29 = false;
+    CATEGORIES.forEach(function(c){ c.items.forEach(function(i){ if (i.featured && !featureItem){ featureItem = i; featureCat = c; } }); });
+  }
   if (featureItem){
+    document.getElementById('feature-eyebrow').textContent = isDay29 ? '¡Hoy es 29, día del ñoqui!' : 'Sugerencia de la semana';
     var ft = document.getElementById('feature-title');
     ft.textContent = featureCat.title;
     var fsc = document.createElement('span'); fsc.className = 'script'; fsc.textContent = featureItem.name.toLowerCase();
