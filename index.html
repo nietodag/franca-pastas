@@ -392,7 +392,10 @@
     transition:background .15s ease;
   }
   .card-qty button:hover{ background:rgba(255,255,255,.36); }
+  .card-qty button:disabled{ opacity:.4; cursor:not-allowed; }
+  .card-qty button:disabled:hover{ background:rgba(255,255,255,.22); }
   .card-qty span{ color:#fff; font-weight:800; font-size:.8rem; min-width:12px; text-align:center; }
+  .qty-note{ color:#B5473F; font-weight:700; font-size:.64rem; line-height:1.2; margin-top:5px; max-width:130px; }
   .card.is-out .card-photo img,
   .card.is-out .card-photo svg{ filter:grayscale(1); opacity:.55; }
   .card.is-out .card-name{ opacity:.6; }
@@ -600,13 +603,16 @@
   .cart-row-name{ flex:1; min-width:0; }
   .cart-row-name .n{ font-weight:700; font-size:.85rem; color:var(--ink); display:block; text-transform:uppercase; }
   .cart-row-name .c{ font-size:.72rem; color:var(--ink-soft); }
+  .cart-qty-col{ display:flex; flex-direction:column; align-items:center; gap:4px; flex:none; }
   .cart-qty{ display:flex; align-items:center; gap:8px; flex:none; }
   .cart-qty button{
     width:24px; height:24px; border-radius:50%; border:1px solid var(--line);
     background:var(--surface); color:var(--ink); font-weight:800;
     cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.9rem;
   }
+  .cart-qty button:disabled{ opacity:.4; cursor:not-allowed; }
   .cart-qty span{ min-width:16px; text-align:center; font-weight:700; font-size:.85rem; }
+  .cart-qty-col .qty-note{ font-size:.62rem; text-align:center; margin-top:0; max-width:80px; }
   .cart-row-price{ flex:none; width:64px; text-align:right; font-weight:800; font-size:.85rem; color:var(--ink); }
   .cart-row-del{
     flex:none; width:26px; height:26px; border-radius:50%; border:none;
@@ -888,6 +894,13 @@
     if (p && p.stock != null && (p.max == null || p.stock <= p.max)) return p.stock === 1 ? "Queda solo 1 unidad de " + name : "Solo quedan " + p.stock + " de " + name;
     return "Máximo " + (p ? p.max : "") + " por pedido de " + name;
   }
+  function limitNote(catId, name){
+    var p = PROD[catId + "::" + name];
+    if (!p) return null;
+    if (p.stock != null && (p.max == null || p.stock <= p.max)) return "No queda más stock";
+    if (p.max != null) return "Es el máximo por pedido";
+    return null;
+  }
   var toastEl = null, toastTimer = null;
   function toast(msg){
     if (!toastEl){
@@ -992,12 +1005,15 @@
   function renderControl(entry){
     var qty = itemQty(entry.catId, entry.itemName);
     if (qty > 0){
+      var atMax = qty >= limitFor(entry.catId, entry.itemName);
+      var note = atMax ? limitNote(entry.catId, entry.itemName) : null;
       entry.el.innerHTML =
         '<div class="card-qty">' +
           '<button type="button" data-act="minus">−</button>' +
           '<span>'+qty+'</span>' +
-          '<button type="button" data-act="plus">+</button>' +
-        '</div>';
+          '<button type="button" data-act="plus"'+(atMax ? ' disabled' : '')+'>+</button>' +
+        '</div>' +
+        (note ? '<div class="qty-note">'+note+'</div>' : '');
       entry.el.querySelector('[data-act="minus"]').addEventListener('click', function(){ changeQtyByKey(entry.catId, entry.itemName, -1); });
       entry.el.querySelector('[data-act="plus"]').addEventListener('click', function(){ changeQtyByKey(entry.catId, entry.itemName, 1); });
     } else {
@@ -1034,12 +1050,17 @@
       cart.forEach(function(c, idx){
         var row = document.createElement('div');
         row.className = 'cart-row';
+        var atMax = c.qty >= limitFor(c.catId, c.itemName);
+        var note = atMax ? limitNote(c.catId, c.itemName) : null;
         row.innerHTML =
           '<div class="cart-row-name"><span class="n">'+c.itemName+'</span><span class="c">'+c.catTitle+'</span></div>' +
-          '<div class="cart-qty">' +
-            '<button type="button" data-act="minus">−</button>' +
-            '<span>'+c.qty+'</span>' +
-            '<button type="button" data-act="plus">+</button>' +
+          '<div class="cart-qty-col">' +
+            '<div class="cart-qty">' +
+              '<button type="button" data-act="minus">−</button>' +
+              '<span>'+c.qty+'</span>' +
+              '<button type="button" data-act="plus"'+(atMax ? ' disabled' : '')+'>+</button>' +
+            '</div>' +
+            (note ? '<div class="qty-note">'+note+'</div>' : '') +
           '</div>' +
           '<div class="cart-row-price tabular">$'+(c.qty*c.price).toLocaleString('es-AR')+'</div>' +
           '<button type="button" class="cart-row-del" data-act="remove" aria-label="Quitar">&times;</button>';
@@ -1341,7 +1362,7 @@
       var photoHtml = item.photo
         ? '<img src="'+item.photo+'" alt="'+escAttr(altText(cat, item))+'" loading="lazy" style="object-position:'+(item.photoPos || '50% 50%')+'">'
         : SHAPES[cat.shape](item.color);
-      var lowHtml = (!item.outOfStock && item.stock != null && item.stock <= (item.lowAt == null ? 3 : item.lowAt))
+      var lowHtml = (!item.outOfStock && item.stock != null && item.stock <= (item.lowAt == null ? 2 : item.lowAt))
         ? '<span class="badge low-stock">' + (item.stock === 1 ? '¡Última!' : '¡Últimas ' + item.stock + '!') + '</span>' : '';
       var maxHtml = (!item.outOfStock && item.max != null) ? '<div class="max-note">Máx. ' + item.max + ' por pedido</div>' : '';
       var controlHtml = item.outOfStock
