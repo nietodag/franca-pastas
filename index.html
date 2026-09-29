@@ -626,6 +626,11 @@
   .cart-foot{ flex:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--line); }
   .cart-total{ display:flex; justify-content:space-between; font-weight:800; font-size:1.1rem; color:var(--ink); margin-bottom:14px; }
   .cart-checkout{ width:100%; justify-content:center; }
+  .cart-name-label{ display:block; font-size:.76rem; font-weight:700; color:var(--ink-soft); margin-bottom:6px; }
+  .cart-name-input{ width:100%; padding:11px 14px; border:1.5px solid var(--line); border-radius:10px; font-size:.95rem; color:var(--ink); background:var(--surface); margin-bottom:10px; }
+  .cart-name-input:focus{ outline:none; border-color:var(--blue); }
+  .cart-name-input.err{ border-color:#B5473F; }
+  .cart-name-err{ color:#B5473F; font-weight:700; font-size:.76rem; margin:-6px 0 8px; min-height:1em; }
 
   .section-label-only{ scroll-margin-top:136px; }
 
@@ -788,6 +793,9 @@
   <div class="cart-items" id="cart-items"></div>
   <div class="cart-foot">
     <div class="cart-total">Total <span class="tabular" id="cart-total-amount">$0</span></div>
+    <label class="cart-name-label" for="cart-name">Nombre para el pedido</label>
+    <input type="text" id="cart-name" class="cart-name-input" placeholder="Francisca" autocomplete="name" maxlength="60">
+    <div class="cart-name-err" id="cart-name-err"></div>
     <a class="btn btn-primary cart-checkout" id="cart-checkout" href="#">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.29-1.39a9.9 9.9 0 0 0 4.75 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2z"/></svg>
       Confirmar pedido por WhatsApp
@@ -1036,6 +1044,14 @@
   var cartItemsEl = document.getElementById('cart-items');
   var cartTotalEl = document.getElementById('cart-total-amount');
   var cartCheckout = document.getElementById('cart-checkout');
+  var cartNameInput = document.getElementById('cart-name');
+  var NAME_KEY = 'franca_name_v1';
+  try { cartNameInput.value = localStorage.getItem(NAME_KEY) || ''; } catch(e){}
+  cartNameInput.addEventListener('input', function(){
+    cartNameInput.classList.remove('err');
+    document.getElementById('cart-name-err').textContent = '';
+    try { localStorage.setItem(NAME_KEY, cartNameInput.value); } catch(e){}
+  });
 
   function renderCart(){
     var count = cartCount();
@@ -1093,11 +1109,11 @@
   document.getElementById('cart-close').addEventListener('click', closeCart);
   document.getElementById('cart-clear').addEventListener('click', clearCart);
   cartOverlay.addEventListener('click', closeCart);
-  function buildMsg(orderId){
+  function buildMsg(customerName){
     var lines = cart.map(function(c){
       return "- " + c.catTitle + ": " + c.itemName + " x" + c.qty + " ($" + (c.qty*c.price).toLocaleString('es-AR') + ")";
     });
-    return "Hola Franca! Quiero hacer este pedido (#" + orderId + "):\n" + lines.join("\n") + "\n\nTotal: $" + cartTotal().toLocaleString('es-AR');
+    return "Hola Franca! Soy " + customerName + " y quiero hacer este pedido:\n" + lines.join("\n") + "\n\nTotal: $" + cartTotal().toLocaleString('es-AR');
   }
   function fixCartFromProblems(problems){
     var names = [];
@@ -1117,13 +1133,20 @@
   cartCheckout.addEventListener('click', function(e){
     e.preventDefault();
     if (placing || cart.length === 0) return;
+    var customerName = cartNameInput.value.trim();
+    if (!customerName){
+      cartNameInput.classList.add('err');
+      document.getElementById('cart-name-err').textContent = 'Ingresá tu nombre para confirmar el pedido.';
+      cartNameInput.focus();
+      return;
+    }
     placing = true;
     cartCheckout.style.opacity = ".6";
     var w = window.open("about:blank", "_blank");
     var items = cart.map(function(c){ return {product_id: c.pid, qty: c.qty}; });
-    supaFetch("rpc/place_order", {method:"POST", body: JSON.stringify({p_items: items, p_note: null})}).then(function(res){
+    supaFetch("rpc/place_order", {method:"POST", body: JSON.stringify({p_items: items, p_note: customerName})}).then(function(res){
       if (res.ok){
-        var url = waLink(buildMsg(res.order_id));
+        var url = waLink(buildMsg(customerName));
         cart = []; saveCart();
         if (w) w.location.href = url; else window.location.href = url;
         closeCart();
