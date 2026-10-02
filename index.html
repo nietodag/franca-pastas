@@ -626,6 +626,10 @@
   .cart-foot{ flex:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--line); }
   .cart-total{ display:flex; justify-content:space-between; font-weight:800; font-size:1.1rem; color:var(--ink); margin-bottom:14px; }
   .cart-checkout{ width:100%; justify-content:center; }
+  .cart-sum.hidden-sum{ display:none; }
+  .cart-sum{ margin-bottom:8px; }
+  .cart-sum-row{ display:flex; justify-content:space-between; font-weight:600; font-size:.9rem; color:var(--ink-soft); margin-bottom:4px; }
+  .cart-sum-row.disc{ color:#2F7D4F; font-weight:700; }
   .cart-name-label{ display:block; font-size:.76rem; font-weight:700; color:var(--ink-soft); margin-bottom:6px; }
   .cart-name-input{ width:100%; padding:11px 14px; border:1.5px solid var(--line); border-radius:10px; font-size:.95rem; color:var(--ink); background:var(--surface); margin-bottom:10px; }
   .cart-name-input:focus{ outline:none; border-color:var(--blue); }
@@ -792,6 +796,10 @@
   </div>
   <div class="cart-items" id="cart-items"></div>
   <div class="cart-foot">
+    <div class="cart-sum hidden-sum" id="cart-sum">
+      <div class="cart-sum-row"><span>Subtotal</span><span class="tabular" id="cart-subtotal">$0</span></div>
+      <div class="cart-sum-row disc"><span>Descuento mayorista (-<span id="cart-disc-pct">20</span>%)</span><span class="tabular" id="cart-discount">-$0</span></div>
+    </div>
     <div class="cart-total">Total <span class="tabular" id="cart-total-amount">$0</span></div>
     <label class="cart-name-label" for="cart-name">Nombre para el pedido</label>
     <input type="text" id="cart-name" class="cart-name-input" placeholder="Francisca" autocomplete="name" maxlength="60">
@@ -967,6 +975,15 @@
   function cartTotal(){
     return cart.reduce(function(sum, c){ return sum + c.qty * c.price; }, 0);
   }
+  var WHOLESALE_PCT = 20; /* debe coincidir con place_order en la base */
+  function wholesaleName(name){
+    var n = String(name || '');
+    if (!/^\s*mayorista(\W|$)/i.test(n)) return null;
+    return n.replace(/^\s*mayorista[\s\-:,.]*/i, '').trim();
+  }
+  function discountFor(subtotal, name){
+    return wholesaleName(name) === null ? 0 : Math.round(subtotal * WHOLESALE_PCT / 100);
+  }
   function findLine(catId, itemName){
     for (var i=0; i<cart.length; i++){
       if (cart[i].catId === catId && cart[i].itemName === itemName) return i;
@@ -1045,12 +1062,21 @@
   var cartTotalEl = document.getElementById('cart-total-amount');
   var cartCheckout = document.getElementById('cart-checkout');
   var cartNameInput = document.getElementById('cart-name');
+  function renderCartTotals(){
+    var sub = cartTotal(), disc = discountFor(sub, cartNameInput.value);
+    document.getElementById('cart-sum').classList.toggle('hidden-sum', disc === 0);
+    document.getElementById('cart-subtotal').textContent = '$' + sub.toLocaleString('es-AR');
+    document.getElementById('cart-disc-pct').textContent = WHOLESALE_PCT;
+    document.getElementById('cart-discount').textContent = '-$' + disc.toLocaleString('es-AR');
+    cartTotalEl.textContent = '$' + (sub - disc).toLocaleString('es-AR');
+  }
   var NAME_KEY = 'franca_name_v1';
   try { cartNameInput.value = localStorage.getItem(NAME_KEY) || ''; } catch(e){}
   cartNameInput.addEventListener('input', function(){
     cartNameInput.classList.remove('err');
     document.getElementById('cart-name-err').textContent = '';
     try { localStorage.setItem(NAME_KEY, cartNameInput.value); } catch(e){}
+    renderCartTotals();
   });
 
   function renderCart(){
@@ -1089,7 +1115,7 @@
       });
     }
 
-    cartTotalEl.textContent = '$' + cartTotal().toLocaleString('es-AR');
+    renderCartTotals();
 
     syncControls();
   }
@@ -1109,11 +1135,18 @@
   document.getElementById('cart-close').addEventListener('click', closeCart);
   document.getElementById('cart-clear').addEventListener('click', clearCart);
   cartOverlay.addEventListener('click', closeCart);
-  function buildMsg(customerName){
+  function buildMsg(customerName, res){
     var lines = cart.map(function(c){
       return "- " + c.catTitle + ": " + c.itemName + " x" + c.qty + " ($" + (c.qty*c.price).toLocaleString('es-AR') + ")";
     });
-    return "Hola Franca! Soy " + customerName + " y quiero hacer este pedido:\n" + lines.join("\n") + "\n\nTotal: $" + cartTotal().toLocaleString('es-AR');
+    var ws = wholesaleName(customerName), pct = (res && res.discount_pct) || 0;
+    var who = ws === null ? customerName : (ws ? ws + " (mayorista)" : "mayorista");
+    var sub = (res && res.subtotal != null) ? res.subtotal : cartTotal();
+    var tot = (res && res.total != null) ? res.total : sub;
+    var tail = pct > 0
+      ? "\n\nSubtotal: $" + sub.toLocaleString('es-AR') + "\nDescuento mayorista (" + pct + "%): -$" + (sub - tot).toLocaleString('es-AR') + "\nTotal: $" + tot.toLocaleString('es-AR')
+      : "\n\nTotal: $" + tot.toLocaleString('es-AR');
+    return "Hola Franca! Soy " + who + " y quiero hacer este pedido:\n" + lines.join("\n") + tail;
   }
   function fixCartFromProblems(problems){
     var names = [];
@@ -1146,7 +1179,7 @@
     var items = cart.map(function(c){ return {product_id: c.pid, qty: c.qty}; });
     supaFetch("rpc/place_order", {method:"POST", body: JSON.stringify({p_items: items, p_note: customerName})}).then(function(res){
       if (res.ok){
-        var url = waLink(buildMsg(customerName));
+        var url = waLink(buildMsg(customerName, res));
         cart = []; saveCart();
         if (w) w.location.href = url; else window.location.href = url;
         closeCart();

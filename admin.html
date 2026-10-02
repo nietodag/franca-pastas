@@ -308,8 +308,10 @@
       if (!shown.length) html += '<p style="color:var(--ink-soft)">No hay pedidos en esta lista.</p>';
       shown.forEach(function(o){
         html += '<div class="card order"><div class="order-h"><div><b>Pedido #' + o.id + '</b> <span style="color:var(--ink-soft)">· ' + fmtDate(o.created_at) + '</span>' +
-          (o.note ? ' <span style="color:var(--ink-soft)">· ' + esc(o.note) + '</span>' : '') + '</div>' +
-          '<div><span class="pill ' + o.status + '">' + o.status + '</span> <b style="margin-left:8px">' + money(o.total) + '</b></div></div><ul>' +
+          (o.note ? ' <span style="color:var(--ink-soft)">· ' + esc(o.note) + '</span>' : '') +
+          (o.discount_pct > 0 ? ' <span class="pill" style="background:var(--basil)">Mayorista -' + o.discount_pct + '%</span>' : '') + '</div>' +
+          '<div><span class="pill ' + o.status + '">' + o.status + '</span> <b style="margin-left:8px">' + money(o.total) + '</b>' +
+          (o.discount_pct > 0 ? ' <span style="color:var(--ink-soft);font-size:.8rem;text-decoration:line-through">' + money(o.subtotal) + '</span>' : '') + '</div></div><ul>' +
           o.order_items.map(function(i){ return "<li>" + esc(i.name) + " ×" + i.qty + " <span>(" + money(i.qty * i.unit_price) + ")</span></li>"; }).join("") + '</ul><div style="display:flex;gap:8px;flex-wrap:wrap;">' +
           (o.status !== "confirmado" ? '<button class="btn small" data-set="confirmado" data-id="' + o.id + '">Confirmar</button>' : "") +
           (o.status !== "cancelado" ? '<button class="btn small danger" data-set="cancelado" data-id="' + o.id + '">Cancelar y devolver stock</button>' : "") +
@@ -626,7 +628,7 @@
   }
   function fetchOrders(from, to){
     var a = encodeURIComponent(from + "T00:00:00-03:00"), b = encodeURIComponent(addDays(to, 1) + "T00:00:00-03:00");
-    return fetchAll("orders?select=id,created_at,status,total,order_items(name,qty,unit_price)&created_at=gte." + a + "&created_at=lt." + b + "&order=created_at.asc");
+    return fetchAll("orders?select=id,created_at,status,total,subtotal,discount_pct,note,order_items(name,qty,unit_price)&created_at=gte." + a + "&created_at=lt." + b + "&order=created_at.asc");
   }
   function localDay(iso){ return ymd(new Date(new Date(iso).getTime() - 3*3600*1000)); }
   function summarize(rows){
@@ -717,10 +719,10 @@
   function downloadCsv(){
     if (!lastRange) return;
     function q(v){ return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }
-    var lines = ["Fecha,Hora,Pedido,Cliente,Estado,Total,Detalle"];
+    var lines = ["Fecha,Hora,Pedido,Cliente,Estado,Subtotal,Descuento %,Total,Detalle"];
     lastRows.forEach(function(o){
       var dt = new Date(new Date(o.created_at).getTime() - 3*3600*1000).toISOString();
-      lines.push([q(dt.slice(0,10)), q(dt.slice(11,16)), o.id, q(o.note), q(o.status), o.total, q(o.order_items.map(function(i){ return i.name + " x" + i.qty; }).join(" | "))].join(","));
+      lines.push([q(dt.slice(0,10)), q(dt.slice(11,16)), o.id, q(o.note), q(o.status), (o.subtotal != null ? o.subtotal : o.total), (o.discount_pct || 0), o.total, q(o.order_items.map(function(i){ return i.name + " x" + i.qty; }).join(" | "))].join(","));
     });
     var blob = new Blob(["﻿" + lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
     var a = document.createElement("a"); a.href = URL.createObjectURL(blob);
