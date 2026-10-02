@@ -945,7 +945,7 @@
           var out = p.stock != null && p.stock <= 0;
           PROD[c.id + "::" + p.name] = {id:p.id, stock:p.stock, max:p.max_per_order, price:p.price};
           return {pid:p.id, name:p.name, desc:p.description || "", price:p.price, color:p.color, badge:p.badge, shape:p.shape,
-                  photo:p.photo_url, photoPos:p.photo_pos, featured:!!p.featured, day29:!!p.day29, fl1:p.feature_l1, fl2:p.feature_l2, fl3:p.feature_l3, outOfStock:out, stock:p.stock, max:p.max_per_order, lowAt:p.low_stock_at};
+                  photo:p.photo_url, photoPos:p.photo_pos, photoZoom:p.photo_zoom, featured:!!p.featured, day29:!!p.day29, fl1:p.feature_l1, fl2:p.feature_l2, fl3:p.feature_l3, outOfStock:out, stock:p.stock, max:p.max_per_order, lowAt:p.low_stock_at};
         });
         if (c.kind === "extra"){
           EXTRAS.title = c.title; EXTRAS.note = c.note || "";
@@ -1365,6 +1365,10 @@
   topbarOverlay.addEventListener('click', closeDropdown);
 
   /* ---------- SEO helpers ---------- */
+  function photoCss(pos, zoom){
+    var z = Number(zoom) || 1, ps = pos || '50% 50%', o = z < 1 ? '50% 50%' : ps;
+    return 'object-position:' + ps + (z !== 1 ? ';transform-origin:' + o + ';transform:scale(' + z + ')' : '');
+  }
   function escAttr(t){ return String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
   function altText(cat, item){
     var d = (item.desc || '').replace(/[.\s]+$/, '');
@@ -1420,7 +1424,7 @@
       var stockBadgeHtml = item.outOfStock ? '<span class="badge out-of-stock">Sin stock</span>' : '';
       var unitBadgeHtml = '<span class="unit-badge">'+cat.note+'</span>';
       var photoHtml = item.photo
-        ? '<img src="'+item.photo+'" alt="'+escAttr(altText(cat, item))+'" loading="lazy" style="object-position:'+(item.photoPos || '50% 50%')+'">'
+        ? '<img src="'+item.photo+'" alt="'+escAttr(altText(cat, item))+'" loading="lazy" style="'+photoCss(item.photoPos, item.photoZoom)+'">'
         : SHAPES[cat.shape](item.color);
       var lowHtml = (!item.outOfStock && item.stock != null && item.stock <= (item.lowAt == null ? 2 : item.lowAt))
         ? '<span class="badge low-stock">' + (item.stock === 1 ? '¡Última!' : '¡Últimas ' + item.stock + '!') + '</span>' : '';
@@ -1536,7 +1540,7 @@
       document.getElementById('feature-l' + n).style.display = txt ? '' : 'none';
       document.getElementById('feature-p' + n).style.display = txt ? '' : 'none';
     });
-    document.getElementById('feature-photo').innerHTML = featureItem.photo ? '<img src="' + featureItem.photo + '" alt="' + escAttr(altText(featureCat, featureItem)) + '" loading="lazy" style="object-position:' + (featureItem.photoPos || '50% 50%') + '">' : SHAPES[featureCat.shape](featureItem.color);
+    document.getElementById('feature-photo').innerHTML = featureItem.photo ? '<img src="' + featureItem.photo + '" alt="' + escAttr(altText(featureCat, featureItem)) + '" loading="lazy" style="' + photoCss(featureItem.photoPos, featureItem.photoZoom) + '">' : SHAPES[featureCat.shape](featureItem.color);
     document.getElementById('feature-price').textContent = featureItem.price.toLocaleString('es-AR');
     featureEntry.catId = featureCat.id; featureEntry.catTitle = featureCat.title; featureEntry.itemName = featureItem.name; featureEntry.price = featureItem.price;
     ITEM_REGISTRY.push(featureEntry);
