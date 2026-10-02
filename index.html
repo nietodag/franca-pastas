@@ -732,12 +732,13 @@
     <div class="feature-media">
       <div class="feature-photo" id="feature-photo"></div>
       <svg class="feature-lines" viewBox="0 0 100 100" aria-hidden="true">
-        <path d="M10,14 Q24,19 32,30"/>
-        <path d="M84,18 Q80,20 76,32"/>
-        <path d="M12,82 Q18,72 33,68"/>
+        <path id="feature-p1" d="M10,14 Q24,19 32,30"/>
+        <path id="feature-p2" d="M84,18 Q80,20 76,32"/>
+        <path id="feature-p3" d="M12,82 Q18,72 33,68"/>
       </svg>
       <span class="feature-label" id="feature-l1" style="top:6%;left:0;"></span>
-      <span class="feature-label" style="top:82%;left:-2%;">Hecho a mano</span>
+      <span class="feature-label" id="feature-l2" style="top:12%;right:-4%;"></span>
+      <span class="feature-label" id="feature-l3" style="top:82%;left:-2%;"></span>
     </div>
   </article>
 </div>
@@ -944,7 +945,7 @@
           var out = p.stock != null && p.stock <= 0;
           PROD[c.id + "::" + p.name] = {id:p.id, stock:p.stock, max:p.max_per_order, price:p.price};
           return {pid:p.id, name:p.name, desc:p.description || "", price:p.price, color:p.color, badge:p.badge, shape:p.shape,
-                  photo:p.photo_url, photoPos:p.photo_pos, featured:!!p.featured, day29:!!p.day29, outOfStock:out, stock:p.stock, max:p.max_per_order, lowAt:p.low_stock_at};
+                  photo:p.photo_url, photoPos:p.photo_pos, featured:!!p.featured, day29:!!p.day29, fl1:p.feature_l1, fl2:p.feature_l2, fl3:p.feature_l3, outOfStock:out, stock:p.stock, max:p.max_per_order, lowAt:p.low_stock_at};
         });
         if (c.kind === "extra"){
           EXTRAS.title = c.title; EXTRAS.note = c.note || "";
@@ -1140,13 +1141,14 @@
       return "- " + c.catTitle + ": " + c.itemName + " x" + c.qty + " ($" + (c.qty*c.price).toLocaleString('es-AR') + ")";
     });
     var ws = wholesaleName(customerName), pct = (res && res.discount_pct) || 0;
-    var who = ws === null ? customerName : (ws ? ws + " (mayorista)" : "mayorista");
+    function bold(t){ return '*' + String(t).replace(/\*/g, '').trim() + '*'; }
+    var who = ws === null ? bold(customerName) : (ws ? bold(ws) + " (mayorista)" : bold("mayorista"));
     var sub = (res && res.subtotal != null) ? res.subtotal : cartTotal();
     var tot = (res && res.total != null) ? res.total : sub;
     var tail = pct > 0
       ? "\n\nSubtotal: $" + sub.toLocaleString('es-AR') + "\nDescuento mayorista (" + pct + "%): -$" + (sub - tot).toLocaleString('es-AR') + "\nTotal: $" + tot.toLocaleString('es-AR')
       : "\n\nTotal: $" + tot.toLocaleString('es-AR');
-    return "Hola Franca! Soy " + who + " y quiero hacer este pedido:\n" + lines.join("\n") + tail;
+    return "Hola soy " + who + " y quiero hacer este pedido:\n" + lines.join("\n") + tail;
   }
   function fixCartFromProblems(problems){
     var names = [];
@@ -1523,7 +1525,17 @@
     var fsc = document.createElement('span'); fsc.className = 'script'; fsc.textContent = (isDay29 ? trimLeadingCat(featureCat.title, featureItem.name) : featureItem.name).toLowerCase();
     ft.appendChild(fsc);
     document.getElementById('feature-desc').textContent = featureItem.desc;
-    document.getElementById('feature-l1').textContent = featureCat.note;
+    var fl = [
+      featureItem.fl1 != null ? featureItem.fl1 : featureCat.note,
+      featureItem.fl2 != null ? featureItem.fl2 : '',
+      featureItem.fl3 != null ? featureItem.fl3 : 'Hecho a mano'
+    ];
+    [1, 2, 3].forEach(function(n){
+      var txt = (fl[n - 1] || '').trim();
+      document.getElementById('feature-l' + n).textContent = txt;
+      document.getElementById('feature-l' + n).style.display = txt ? '' : 'none';
+      document.getElementById('feature-p' + n).style.display = txt ? '' : 'none';
+    });
     document.getElementById('feature-photo').innerHTML = featureItem.photo ? '<img src="' + featureItem.photo + '" alt="' + escAttr(altText(featureCat, featureItem)) + '" loading="lazy" style="object-position:' + (featureItem.photoPos || '50% 50%') + '">' : SHAPES[featureCat.shape](featureItem.color);
     document.getElementById('feature-price').textContent = featureItem.price.toLocaleString('es-AR');
     featureEntry.catId = featureCat.id; featureEntry.catTitle = featureCat.title; featureEntry.itemName = featureItem.name; featureEntry.price = featureItem.price;

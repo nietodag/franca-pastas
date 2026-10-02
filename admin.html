@@ -70,6 +70,11 @@
   .chead .ctitle:hover,.chead .ctitle:focus{border-color:var(--line);background:#fff;}
   .chead .cnote{flex:0 1 190px;} .chead .cact{display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap;}
   .chead .cnt{color:var(--ink-soft);font-size:.85rem;margin-right:6px;}
+  .flabels{border-top:1px dashed var(--line);padding-top:10px;margin-top:2px;}
+  .flt{font-weight:800;font-size:.8rem;color:var(--blue);margin-bottom:6px;} .flt small{font-weight:600;color:var(--ink-soft);}
+  .flgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;} .flgrid label{margin:0 0 3px;font-size:.68rem;color:var(--ink-soft);}
+  .flgrid input{padding:8px 10px;font-size:.85rem;}
+  @media (max-width:520px){.flgrid{grid-template-columns:1fr;}}
   .cat-nav{position:sticky;top:56px;z-index:9;background:var(--bg);padding:10px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line);margin-bottom:6px;}
   .cat-nav a{background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:700;font-size:.85rem;color:var(--ink);text-decoration:none;}
   .cat-nav a:hover{border-color:var(--blue);color:var(--blue);}
@@ -344,6 +349,17 @@
     return url ? '<img src="' + esc(url) + '" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:' + esc(pos || "50% 50%") + '">'
                : '<div class="ph" style="background:' + esc(p.color || "#9DB7C4") + '">' + esc(p.name.charAt(0)) + '</div>';
   }
+  function isGnocchiCat(id){
+    var c = CATS.filter(function(x){ return x.id === id; })[0] || {};
+    return /[ñn]oqui/i.test((c.title || "") + " " + (c.id || ""));
+  }
+  function labelsBlock(p){
+    var c = CATS.filter(function(x){ return x.id === p.category_id; })[0] || {};
+    var v1 = p.feature_l1 != null ? p.feature_l1 : (c.note || ""), v2 = p.feature_l2 != null ? p.feature_l2 : "", v3 = p.feature_l3 != null ? p.feature_l3 : "Hecho a mano";
+    function f(n, v, ph){ return '<div><label>' + ph + '</label><input type="text" maxlength="24" data-fl="' + n + '" value="' + esc(v) + '" placeholder="(sin texto)"></div>'; }
+    return '<div class="flabels' + ((p.featured || p.day29) ? "" : " hidden") + '"><div class="flt">Textos de las 3 flechitas de la sugerencia <small>(dejá vacío para ocultar una)</small></div>' +
+      '<div class="flgrid">' + f(1, v1, "Arriba izquierda") + f(2, v2, "Arriba derecha") + f(3, v3, "Abajo izquierda") + '</div></div>';
+  }
   function prodRow(p){
     var low = p.stock != null && p.stock > 0 && p.stock <= (p.low_stock_at == null ? 3 : p.low_stock_at);
     var chips = (p.active ? "" : '<span class="chip grey">Oculto</span>') +
@@ -365,8 +381,9 @@
       '<div><label>Máx./pedido</label><input type="number" min="1" data-k="max_per_order" value="' + (p.max_per_order == null ? "" : p.max_per_order) + '" placeholder="—"></div></div>' +
       '<div class="pfoot"><label class="sw"><input type="checkbox" data-k="active"' + (p.active ? " checked" : "") + '> Visible</label>' +
       '<label class="sw" title="Aparece destacado arriba del menú"><input type="checkbox" data-k="featured" data-feat="1"' + (p.featured ? " checked" : "") + '> Sugerencia de la semana</label>' +
-      '<label class="sw" title="Aparece destacado arriba del menú automáticamente todos los 29"><input type="checkbox" data-k="day29" data-day29="1"' + (p.day29 ? " checked" : "") + '> Destacar el 29 (día del ñoqui)</label><span class="grow"></span>' +
+      (isGnocchiCat(p.category_id) ? '<label class="sw" title="Aparece destacado arriba del menú automáticamente todos los 29"><input type="checkbox" data-k="day29" data-day29="1"' + (p.day29 ? " checked" : "") + '> Destacar el 29 (día del ñoqui)</label>' : "") + '<span class="grow"></span>' +
       '<button class="btn small ghost" data-del="' + p.id + '">Eliminar</button></div>' +
+      labelsBlock(p) +
       '</div></article>';
   }
 
@@ -388,6 +405,9 @@
       var k = inp.dataset.k, v = inp.value;
       patch[k] = (k === "active" || k === "featured" || k === "day29") ? inp.checked : (k === "price") ? Number(v) : (k === "stock" || k === "max_per_order") ? num(v) : (k === "description" ? (v.trim() || null) : v.trim());
     });
+    if (card.dataset.labelsDirty === "1"){
+      [1, 2, 3].forEach(function(n){ patch["feature_l" + n] = card.querySelector('[data-fl="' + n + '"]').value.trim(); });
+    }
     if (card.dataset.photoDirty === "1"){ patch.photo_url = card.dataset.photo || null; patch.photo_pos = card.dataset.pos; }
     return patch;
   }
@@ -438,6 +458,11 @@
         if (e.target.dataset && e.target.dataset.day29 && e.target.checked){
           $("tab-catalog").querySelectorAll("[data-day29]").forEach(function(o){ if (o !== e.target) o.checked = false; });
         }
+        if (e.target.dataset && e.target.dataset.fl) card.dataset.labelsDirty = "1";
+        $("tab-catalog").querySelectorAll(".pcard").forEach(function(c){
+          var on = c.querySelector("[data-feat]:checked") || c.querySelector("[data-day29]:checked");
+          var box = c.querySelector(".flabels"); if (box) box.classList.toggle("hidden", !on);
+        });
         markDirty(card);
       }
       card.addEventListener("input", dirty); card.addEventListener("change", dirty);
