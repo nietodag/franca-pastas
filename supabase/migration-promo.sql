@@ -58,5 +58,7 @@ begin
 end $$;
 grant execute on function place_order(jsonb, text) to anon, authenticated;
 
--- Activa 20% en todas las salsas durante 24 horas desde que corras este script.
-update categories set promo_pct = 20, promo_until = now() + interval '24 hours' where id = 'salsas';
+-- Activa 20% en todas las salsas hasta la medianoche de hoy (hora Argentina).
+update categories set promo_pct = 20,
+  promo_until = (date_trunc('day', now() at time zone 'America/Argentina/Buenos_Aires') + interval '1 day') at time zone 'America/Argentina/Buenos_Aires'
+where id = 'salsas';

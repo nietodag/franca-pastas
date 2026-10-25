@@ -938,16 +938,16 @@
   }
 
   var promoTimer = null;
-  function fmtUntil(iso){
-    var tz = 'America/Argentina/Buenos_Aires', u = new Date(iso), now = new Date();
+  function untilLabel(iso){
+    var tz = 'America/Argentina/Buenos_Aires', now = new Date();
     function key(d){ return new Intl.DateTimeFormat('en-CA', {timeZone: tz}).format(d); }
-    var hm = new Intl.DateTimeFormat('es-AR', {timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false}).format(u);
-    var k = key(u), day = k === key(now) ? 'hoy' : k === key(new Date(now.getTime() + 86400000)) ? 'mañana'
-      : u.toLocaleDateString('es-AR', {timeZone: tz, day: '2-digit', month: '2-digit'});
-    return day + ' ' + hm;
+    var last = new Date(new Date(iso).getTime() - 1000), k = key(last);
+    if (k === key(now)) return 'solo por hoy';
+    if (k === key(new Date(now.getTime() + 86400000))) return 'hasta mañana';
+    return 'hasta el ' + last.toLocaleDateString('es-AR', {timeZone: tz, day: '2-digit', month: '2-digit'});
   }
   function promoPill(promo){
-    return promo ? '<span class="promo-pill">-' + promo.pct + '% hasta ' + fmtUntil(promo.until) + '</span>' : '';
+    return promo ? '<span class="promo-pill">-' + promo.pct + '% ' + untilLabel(promo.until) + '</span>' : '';
   }
   function schedulePromoRefresh(untilMs){
     clearTimeout(promoTimer);
