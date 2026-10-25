@@ -363,6 +363,11 @@
   .card-foot{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .price{ font-weight:800; font-size:1rem; color:var(--blue); }
   .price::before{ content:"$"; margin-right:1px; }
+  .price-wrap{ display:flex; flex-direction:column; line-height:1.05; }
+  .price-old{ font-size:.72rem; font-weight:700; color:var(--ink-soft); text-decoration:line-through; }
+  .price-old::before{ content:"$"; }
+  .promo-pill{ display:inline-flex; align-items:center; background:#D14C33; color:#fff; font-size:.72rem; font-weight:800; padding:5px 12px; border-radius:999px; letter-spacing:.02em; }
+  .extra-price .old{ display:block; font-size:.88em; font-weight:700; color:var(--ink-soft); text-decoration:line-through; }
   .buy{
     display:inline-flex; align-items:center; gap:6px;
     background:var(--blue); color:#fff;
@@ -932,6 +937,23 @@
     toastTimer = setTimeout(function(){ toastEl.style.opacity = "0"; }, 2600);
   }
 
+  var promoTimer = null;
+  function fmtUntil(iso){
+    var tz = 'America/Argentina/Buenos_Aires', u = new Date(iso), now = new Date();
+    function key(d){ return new Intl.DateTimeFormat('en-CA', {timeZone: tz}).format(d); }
+    var hm = new Intl.DateTimeFormat('es-AR', {timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false}).format(u);
+    var k = key(u), day = k === key(now) ? 'hoy' : k === key(new Date(now.getTime() + 86400000)) ? 'mañana'
+      : u.toLocaleDateString('es-AR', {timeZone: tz, day: '2-digit', month: '2-digit'});
+    return day + ' ' + hm;
+  }
+  function promoPill(promo){
+    return promo ? '<span class="promo-pill">-' + promo.pct + '% hasta ' + fmtUntil(promo.until) + '</span>' : '';
+  }
+  function schedulePromoRefresh(untilMs){
+    clearTimeout(promoTimer);
+    if (!untilMs) return;
+    promoTimer = setTimeout(function(){ loadCatalog().then(function(){ renderMenu(); renderCart(); }).catch(function(){}); }, Math.max(1000, untilMs - Date.now() + 1500));
+  }
   function loadCatalog(){
     return Promise.all([
       supaFetch("categories?select=*&order=sort.asc"),
@@ -940,18 +962,22 @@
       var cats = res[0], prods = res[1];
       CATEGORIES = []; PROD = {};
       EXTRAS = {title:"Salsas & Extras", note:"", salsas:[], otros:[]};
+      var promoEnds = 0;
       cats.forEach(function(c){
+        var promo = (c.promo_pct > 0 && c.promo_until && new Date(c.promo_until).getTime() > Date.now()) ? {pct: c.promo_pct, until: c.promo_until} : null;
+        if (promo) promoEnds = promoEnds ? Math.min(promoEnds, new Date(promo.until).getTime()) : new Date(promo.until).getTime();
+        function eff(price){ return promo ? Math.round(price * (100 - promo.pct) / 100) : price; }
         var items = prods.filter(function(p){ return p.category_id === c.id && !(p.stock != null && p.stock <= 0); }).map(function(p){
           var out = p.stock != null && p.stock <= 0;
-          PROD[c.id + "::" + p.name] = {id:p.id, stock:p.stock, max:p.max_per_order, price:p.price};
-          return {pid:p.id, name:p.name, desc:p.description || "", price:p.price, color:p.color, badge:p.badge, shape:p.shape,
+          PROD[c.id + "::" + p.name] = {id:p.id, stock:p.stock, max:p.max_per_order, price:eff(p.price)};
+          return {pid:p.id, name:p.name, desc:p.description || "", price:eff(p.price), basePrice:p.price, color:p.color, badge:p.badge, shape:p.shape,
                   photo:p.photo_url, photoPos:p.photo_pos, photoZoom:p.photo_zoom, featured:!!p.featured, day29:!!p.day29, fl1:p.feature_l1, fl2:p.feature_l2, fl3:p.feature_l3, outOfStock:out, stock:p.stock, max:p.max_per_order, lowAt:p.low_stock_at};
         });
         if (c.kind === "extra"){
-          EXTRAS.title = c.title; EXTRAS.note = c.note || "";
+          EXTRAS.title = c.title; EXTRAS.note = c.note || ""; EXTRAS.promo = promo;
           items.forEach(function(i){ (i.shape === "cheese" ? EXTRAS.otros : EXTRAS.salsas).push(i); });
         } else if (items.length){
-          CATEGORIES.push({id:c.id, title:c.title, note:c.note || "", shape:c.shape || "dome", items:items});
+          CATEGORIES.push({id:c.id, title:c.title, note:c.note || "", shape:c.shape || "dome", items:items, promo:promo});
         }
       });
       /* drop cart lines that no longer exist, refresh prices, clamp to limits */
@@ -964,6 +990,7 @@
       });
       cart = cart.filter(function(l){ return l.qty > 0; });
       saveCart();
+      schedulePromoRefresh(promoEnds);
     });
   }
 
@@ -1137,8 +1164,11 @@
   document.getElementById('cart-clear').addEventListener('click', clearCart);
   cartOverlay.addEventListener('click', closeCart);
   function buildMsg(customerName, res){
+    var up = {};
+    ((res && res.items) || []).forEach(function(i){ up[i.product_id] = i.unit_price; });
     var lines = cart.map(function(c){
-      return "- " + c.catTitle + ": " + c.itemName + " x" + c.qty + " ($" + (c.qty*c.price).toLocaleString('es-AR') + ")";
+      var unit = up[c.pid] != null ? up[c.pid] : c.price;
+      return "- " + c.catTitle + ": " + c.itemName + " x" + c.qty + " ($" + (c.qty * unit).toLocaleString('es-AR') + ")";
     });
     var ws = wholesaleName(customerName), pct = (res && res.discount_pct) || 0;
     function bold(t){ return '*' + String(t).replace(/\*/g, '').trim() + '*'; }
@@ -1411,7 +1441,7 @@
 
     var head = document.createElement('div');
     head.className = 'cat-head';
-    head.innerHTML = '<span class="cat-title">'+cat.title+'</span><span class="unit-pill">'+cat.note+'</span>';
+    head.innerHTML = '<span class="cat-title">'+cat.title+'</span><span class="unit-pill">'+cat.note+'</span>' + promoPill(cat.promo);
     section.appendChild(head);
 
     var grid = document.createElement('div');
@@ -1437,7 +1467,9 @@
         '<div class="card-body">' +
           '<div class="card-name">'+item.name+'</div>' + maxHtml +
           '<div class="card-foot">' +
-            '<span class="price tabular">'+item.price.toLocaleString('es-AR')+'</span>' +
+            (item.basePrice !== item.price
+              ? '<span class="price-wrap"><span class="price-old tabular">'+item.basePrice.toLocaleString('es-AR')+'</span><span class="price tabular">'+item.price.toLocaleString('es-AR')+'</span></span>'
+              : '<span class="price tabular">'+item.price.toLocaleString('es-AR')+'</span>') +
             controlHtml +
           '</div>' +
         '</div>';
@@ -1467,7 +1499,7 @@
   exSection.id = 'salsas';
   var exHead = document.createElement('div');
   exHead.className = 'cat-head';
-  exHead.innerHTML = '<span class="cat-title">'+EXTRAS.title+'</span>' + (EXTRAS.note ? '<span class="unit-pill">'+EXTRAS.note+'</span>' : '');
+  exHead.innerHTML = '<span class="cat-title">'+EXTRAS.title+'</span>' + (EXTRAS.note ? '<span class="unit-pill">'+EXTRAS.note+'</span>' : '') + promoPill(EXTRAS.promo);
   exSection.appendChild(exHead);
 
   var exBox = document.createElement('div');
@@ -1482,7 +1514,7 @@
     var rot = isCheese ? 0 : [-8, 5, -4, 9][idx % 4];
     pouch.innerHTML = '<div class="'+bagClass+'" style="background:'+s.color+'; transform:rotate('+rot+'deg);"></div>' +
       '<span class="extra-name">'+s.name+'</span>' +
-      '<span class="extra-price tabular">$'+s.price.toLocaleString('es-AR')+'</span>' +
+      '<span class="extra-price tabular">' + (s.basePrice !== s.price ? '<span class="old">$'+s.basePrice.toLocaleString('es-AR')+'</span>' : '') + '$'+s.price.toLocaleString('es-AR')+'</span>' +
       '<div class="card-control">' + (s.outOfStock ? '<span class="buy is-disabled">Sin stock</span>' : '') + '</div>';
     exGrid.appendChild(pouch);
     if (!s.outOfStock) ITEM_REGISTRY.push({el: pouch.querySelector('.card-control'), catId: 'salsas', catTitle: EXTRAS.title, itemName: s.name, price: s.price});
