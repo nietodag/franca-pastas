@@ -348,6 +348,7 @@
   .badge.integral{ background:#E8A33D; color:#fff;}
   .badge.out-of-stock{ left:auto; right:8px; background:var(--ink-soft); }
   .badge.low-stock{ left:auto; right:8px; background:#D14C33; }
+  .badge.promo{ top:auto; left:auto; bottom:8px; right:8px; background:#D14C33; font-size:.7rem; }
   .max-note{ font-size:.7rem; font-weight:700; color:var(--ink-soft); margin:-4px 0 8px; }
   .menu-loading{ text-align:center; color:var(--ink-soft); padding:60px 20px; font-weight:600; }
   .unit-badge{
@@ -966,11 +967,14 @@
       cats.forEach(function(c){
         var promo = (c.promo_pct > 0 && c.promo_until && new Date(c.promo_until).getTime() > Date.now()) ? {pct: c.promo_pct, until: c.promo_until} : null;
         if (promo) promoEnds = promoEnds ? Math.min(promoEnds, new Date(promo.until).getTime()) : new Date(promo.until).getTime();
-        function eff(price){ return promo ? Math.round(price * (100 - promo.pct) / 100) : price; }
         var items = prods.filter(function(p){ return p.category_id === c.id && !(p.stock != null && p.stock <= 0); }).map(function(p){
           var out = p.stock != null && p.stock <= 0;
-          PROD[c.id + "::" + p.name] = {id:p.id, stock:p.stock, max:p.max_per_order, price:eff(p.price)};
-          return {pid:p.id, name:p.name, desc:p.description || "", price:eff(p.price), basePrice:p.price, color:p.color, badge:p.badge, shape:p.shape,
+          var pp = (p.promo_pct > 0 && p.promo_until && new Date(p.promo_until).getTime() > Date.now()) ? {pct: p.promo_pct, until: p.promo_until} : null;
+          var ip = (pp && (!promo || pp.pct > promo.pct)) ? pp : promo;
+          if (pp) promoEnds = promoEnds ? Math.min(promoEnds, new Date(pp.until).getTime()) : new Date(pp.until).getTime();
+          var effPrice = ip ? Math.round(p.price * (100 - ip.pct) / 100) : p.price;
+          PROD[c.id + "::" + p.name] = {id:p.id, stock:p.stock, max:p.max_per_order, price:effPrice};
+          return {pid:p.id, name:p.name, desc:p.description || "", price:effPrice, basePrice:p.price, promo:ip, color:p.color, badge:p.badge, shape:p.shape,
                   photo:p.photo_url, photoPos:p.photo_pos, photoZoom:p.photo_zoom, featured:!!p.featured, day29:!!p.day29, fl1:p.feature_l1, fl2:p.feature_l2, fl3:p.feature_l3, outOfStock:out, stock:p.stock, max:p.max_per_order, lowAt:p.low_stock_at};
         });
         if (c.kind === "extra"){
@@ -1458,12 +1462,13 @@
         : SHAPES[cat.shape](item.color);
       var lowHtml = (!item.outOfStock && item.stock != null && item.stock <= (item.lowAt == null ? 2 : item.lowAt))
         ? '<span class="badge low-stock">' + (item.stock === 1 ? '¡Última!' : '¡Últimas ' + item.stock + '!') + '</span>' : '';
+      var promoHtml = (item.promo && item.basePrice !== item.price) ? '<span class="badge promo">-' + item.promo.pct + '%</span>' : '';
       var maxHtml = (!item.outOfStock && item.max != null) ? '<div class="max-note">Máx. ' + item.max + ' por pedido</div>' : '';
       var controlHtml = item.outOfStock
         ? '<span class="buy is-disabled">Sin stock</span>'
         : '<div class="card-control"></div>';
       card.innerHTML =
-        '<button type="button" class="card-photo">'+badgeHtml + stockBadgeHtml + lowHtml + unitBadgeHtml + photoHtml + '</button>' +
+        '<button type="button" class="card-photo">'+badgeHtml + stockBadgeHtml + lowHtml + promoHtml + unitBadgeHtml + photoHtml + '</button>' +
         '<div class="card-body">' +
           '<div class="card-name">'+item.name+'</div>' + maxHtml +
           '<div class="card-foot">' +
@@ -1474,7 +1479,7 @@
           '</div>' +
         '</div>';
       card.querySelector('.card-photo').addEventListener('click', function(){
-        openItemModal(cat.id, cat.title, item.name, item.price, cat.note, item.desc, photoHtml, badgeHtml, !!item.outOfStock);
+        openItemModal(cat.id, cat.title, item.name, item.price, cat.note, item.desc, photoHtml, badgeHtml + promoHtml, !!item.outOfStock);
       });
       if (!item.outOfStock){
         ITEM_REGISTRY.push({el: card.querySelector('.card-control'), catId: cat.id, catTitle: cat.title, itemName: item.name, price: item.price});
