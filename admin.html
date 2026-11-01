@@ -114,6 +114,10 @@
   .pill.nuevo{background:var(--gold);} .pill.confirmado{background:var(--basil);} .pill.cancelado{background:var(--ink-soft);}
   .order-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;}
   .order ul{margin:8px 0;padding-left:18px;color:var(--ink-soft);}
+  .date-edit{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);}
+  .date-edit label{display:flex;gap:8px;align-items:center;font-weight:600;font-size:.85rem;}
+  .date-edit input{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:8px;}
+  .date-edit .hint{color:var(--ink-soft);font-size:.78rem;}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px;}
   .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;}
   .kpi b{display:block;font-size:1.6rem;font-weight:900;color:var(--blue);}
@@ -343,7 +347,9 @@
           o.order_items.map(function(i){ return "<li>" + esc(i.name) + " ×" + i.qty + " <span>(" + money(i.qty * i.unit_price) + ")</span></li>"; }).join("") + '</ul><div style="display:flex;gap:8px;flex-wrap:wrap;">' +
           (o.status !== "confirmado" ? '<button class="btn small" data-set="confirmado" data-id="' + o.id + '">Confirmar</button>' : "") +
           (o.status !== "cancelado" ? '<button class="btn small danger" data-set="cancelado" data-id="' + o.id + '">Cancelar y devolver stock</button>' : "") +
-          (o.status !== "nuevo" ? '<button class="btn small ghost" data-set="nuevo" data-id="' + o.id + '">Volver a nuevo</button>' : "") + '</div></div>';
+          (o.status !== "nuevo" ? '<button class="btn small ghost" data-set="nuevo" data-id="' + o.id + '">Volver a nuevo</button>' : "") +
+          '<button class="btn small ghost" data-date="' + o.id + '" data-at="' + o.created_at + '">Cambiar fecha</button></div>' +
+          '<div class="date-edit hidden" id="de-' + o.id + '"></div></div>';
       });
       $("tab-orders").innerHTML = html;
       $("tab-orders").querySelectorAll("[data-f]").forEach(function(b){ b.addEventListener("click", function(){ orderFilter = b.dataset.f; loadOrders(); }); });
@@ -351,6 +357,23 @@
         if (b.dataset.set === "cancelado" && !confirm("¿Cancelar el pedido #" + b.dataset.id + "? El stock vuelve a estar disponible.")) return;
         b.disabled = true;
         rest("rpc/set_order_status", {method:"POST", body: JSON.stringify({p_order: Number(b.dataset.id), p_status: b.dataset.set})}).then(loadOrders).catch(function(e){ alert("No se pudo cambiar: " + e.message); b.disabled = false; });
+      }); });
+      $("tab-orders").querySelectorAll("[data-date]").forEach(function(b){ b.addEventListener("click", function(){
+        var box = $("de-" + b.dataset.date);
+        if (!box.classList.contains("hidden")) { box.classList.add("hidden"); return; }
+        var cur = new Date(new Date(b.dataset.at).getTime() - 3*3600*1000).toISOString().slice(0,16);
+        box.innerHTML = '<label>Fecha y hora del pedido <input type="datetime-local" value="' + cur + '"></label>' +
+          '<button class="btn small" data-ok>Guardar fecha</button><button class="btn small ghost" data-no>Cancelar</button>' +
+          '<span class="hint">Cuenta en las estadísticas del mes que elijas.</span>';
+        box.classList.remove("hidden");
+        box.querySelector("[data-no]").addEventListener("click", function(){ box.classList.add("hidden"); });
+        box.querySelector("[data-ok]").addEventListener("click", function(){
+          var v = box.querySelector("input").value;
+          if (!v) { alert("Elegí una fecha."); return; }
+          this.disabled = true;
+          rest("orders?id=eq." + b.dataset.date, {method:"PATCH", headers:{Prefer:"return=minimal"}, body: JSON.stringify({created_at: new Date(v + ":00-03:00").toISOString()})})
+            .then(loadOrders).catch(function(e){ alert("No se pudo cambiar la fecha: " + e.message); box.querySelector("[data-ok]").disabled = false; });
+        });
       }); });
     }).catch(function(e){ $("tab-orders").innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
   }
