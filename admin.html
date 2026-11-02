@@ -710,7 +710,7 @@
   function catName(id){ var c = CATS.filter(function(x){ return x.id === id; })[0]; return c ? c.title : id; }
   function promoSummary(){
     var end = promoEndDate(), pct = Number(PR.pct);
-    var what = PR.target === "cat" ? ("toda la categoría " + catName(PR.cat)) : (Object.keys(PR.picked).length + " plato(s) elegidos");
+    var what = PR.target === "all" ? "TODA la carta (todas las categorías)" : PR.target === "cat" ? ("toda la categoría " + catName(PR.cat)) : (Object.keys(PR.picked).length + " plato(s) elegidos");
     return "Se aplicará -" + (pct || 0) + "% a " + what + (end && !isNaN(end) ? " hasta " + arStamp(end.toISOString()) + " (hora Argentina)." : ". Elegí cuándo termina.");
   }
   function renderPromos(){
@@ -723,10 +723,10 @@
     }).join("") : '<p style="color:var(--ink-soft);margin:0">No hay ninguna promoción activa.</p>') + '</div>';
 
     html += '<div class="card"><h3>Nueva promoción</h3>' +
-      '<label>¿A qué se aplica?</label><div class="seg"><button type="button" class="' + (PR.target === "cat" ? "on" : "") + '" data-tg="cat">Una categoría entera</button><button type="button" class="' + (PR.target === "prod" ? "on" : "") + '" data-tg="prod">Platos puntuales</button></div>';
+      '<label>¿A qué se aplica?</label><div class="seg"><button type="button" class="' + (PR.target === "all" ? "on" : "") + '" data-tg="all">Toda la carta</button><button type="button" class="' + (PR.target === "cat" ? "on" : "") + '" data-tg="cat">Una categoría entera</button><button type="button" class="' + (PR.target === "prod" ? "on" : "") + '" data-tg="prod">Platos puntuales</button></div>';
     if (PR.target === "cat"){
       html += '<select id="pr-cat" style="margin-top:8px">' + CATS.map(function(c){ return '<option value="' + esc(c.id) + '"' + (c.id === PR.cat ? " selected" : "") + '>' + esc(c.title) + '</option>'; }).join("") + '</select>';
-    } else {
+    } else if (PR.target === "prod") {
       var q = PR.q.toLowerCase();
       html += '<input type="text" id="pr-q" placeholder="Buscar plato…" value="' + esc(PR.q) + '" style="margin-top:8px"><div class="pickbox">' +
         PRODS.filter(function(p){ return !q || (p.name + " " + catName(p.category_id)).toLowerCase().indexOf(q) !== -1; }).map(function(p){
@@ -764,7 +764,7 @@
       if (!end || isNaN(end) || end.getTime() <= Date.now() + 60000){ err.textContent = "Elegí un momento de finalización que sea futuro."; return; }
       var ids = Object.keys(PR.picked);
       if (PR.target === "prod" && !ids.length){ err.textContent = "Elegí al menos un plato."; return; }
-      var path = PR.target === "cat" ? "categories?id=eq." + encodeURIComponent(PR.cat) : "products?id=in.(" + ids.join(",") + ")";
+      var path = PR.target === "all" ? "categories?id=not.is.null" : PR.target === "cat" ? "categories?id=eq." + encodeURIComponent(PR.cat) : "products?id=in.(" + ids.join(",") + ")";
       if (!confirm(promoSummary() + "\n\n¿Activarla ahora?")) return;
       var btn = $("pr-go"); btn.disabled = true; btn.textContent = "Activando…";
       rest(path, {method:"PATCH", headers:{Prefer:"return=minimal"}, body: JSON.stringify({promo_pct:pct, promo_until:end.toISOString()})})
